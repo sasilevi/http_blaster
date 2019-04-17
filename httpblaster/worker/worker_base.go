@@ -46,7 +46,7 @@ func (w *WorkerBase) open_connection() {
 	conn, err := fasthttp.DialTimeout(w.host, DialTimeout)
 	if err != nil {
 		panic(err)
-		log.Printf("open connection error: %s\n", err)
+		// log.Printf("open connection error: %s\n", err)
 	}
 	if w.is_tls_client {
 		w.conn = w.open_secure_connection(conn)
