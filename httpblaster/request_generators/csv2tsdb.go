@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-
 )
 
 type Csv2TSDB struct {

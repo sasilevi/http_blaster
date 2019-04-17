@@ -2,9 +2,9 @@ package igz_data
 
 import (
 	"fmt"
-	"testing"
 	"math/rand"
 	"strconv"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"time"
@@ -13,15 +13,15 @@ import (
 var item2 = IgzTSDBItem{}
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 var metric = randSeq(10)
-var lables = map[string]string{"dc": "7",	"hostname":   "myhosts"}
+var lables = map[string]string{"dc": "7", "hostname": "myhosts"}
 var timestamp = NowAsUnixMilli()
-var float_val = randFloat(0,rand.Float64())
+var float_val = randFloat(0, rand.Float64())
 var lable_key = "lable"
 var lable_val = "lable_value"
 
 func init() {
 	item2.InsertMetric(metric)
-	item2.InsertLable(lable_key,lable_val)
+	item2.InsertLable(lable_key, lable_val)
 	item2.InsertSample(timestamp, float_val)
 
 	fmt.Println(item2.Samples)
@@ -60,17 +60,6 @@ func randSeq(n int) string {
 }
 
 func randFloat(min, max float64) float64 {
-	res := min + rand.Float64() * (max - min)
+	res := min + rand.Float64()*(max-min)
 	return res
 }
-
-
-
-
-
-
-
-
-
-
-

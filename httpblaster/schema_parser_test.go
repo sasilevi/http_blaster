@@ -10,20 +10,15 @@ import (
 	//"go/parser"
 	"strings"
 
-
-	"github.com/v3io/v3io-tsdb/pkg/utils"
 	"encoding/json"
 	"fmt"
+	"github.com/v3io/v3io-tsdb/pkg/utils"
 )
-
-
-
-
 
 func Test_Schema_Parser(t *testing.T) {
 	//pwd, _ := os.Getwd()
 	p := igz_data.EmdSchemaParser{}
-	e := p.LoadSchema("../examples/schemas/schema_example.json","","")
+	e := p.LoadSchema("../examples/schemas/schema_example.json", "", "")
 	if e != nil {
 		t.Error(e)
 	}
@@ -52,11 +47,10 @@ func Test_Schema_Parser(t *testing.T) {
 	}
 }
 
-
 func Test_tsdb_Schema_Parser(t *testing.T) {
 	//pwd, _ := os.Getwd()
 	p := igz_data.EmdSchemaParser{}
-	e := p.LoadSchema("../examples/schemas/tsdb_schema_example.json","","")
+	e := p.LoadSchema("../examples/schemas/tsdb_schema_example.json", "", "")
 	if e != nil {
 		t.Error(e)
 	}
@@ -81,7 +75,7 @@ func Test_tsdb_Schema_Parser(t *testing.T) {
 		if strings.HasPrefix(record[0], "#") {
 			log.Println("Skipping scv header ", strings.Join(record[:], ","))
 		} else {
-		j := p.TSDBFromCSVRecord(record)
+			j := p.TSDBFromCSVRecord(record)
 			log.Println(j)
 			line_count++
 			if line_count%1024 == 0 {
@@ -89,8 +83,6 @@ func Test_tsdb_Schema_Parser(t *testing.T) {
 			}
 		}
 	}
-
-
 
 }
 
@@ -108,12 +100,3 @@ func Test_tsdb_to_json(t *testing.T) {
 	body, _ := json.Marshal(items)
 	fmt.Println(string(body))
 }
-
-
-
-
-
-
-
-
-

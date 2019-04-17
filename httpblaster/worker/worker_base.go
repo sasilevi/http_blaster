@@ -203,7 +203,7 @@ func (w *WorkerBase) GetHist() map[int64]int {
 
 func NewWorker(worker_type WorkerType, host string,
 	tls_client bool, lazy int, retry_codes []int,
-		retry_count int, pem_file string, id int, executor_name string) Worker {
+	retry_count int, pem_file string, id int, executor_name string) Worker {
 	if host == "" {
 		return nil
 	}
@@ -220,10 +220,10 @@ func NewWorker(worker_type WorkerType, host string,
 	hist.New()
 	if worker_type == PERFORMANCE_WORKER {
 		worker = &PerfWorker{WorkerBase{host: host, is_tls_client: tls_client, retry_codes: retry_codes_map,
-			retry_count: retry_count, pem_file: pem_file, id: id, hist: hist, executor_name:executor_name}}
+			retry_count: retry_count, pem_file: pem_file, id: id, hist: hist, executor_name: executor_name}}
 	} else {
 		worker = &IngestWorker{WorkerBase{host: host, is_tls_client: tls_client, retry_codes: retry_codes_map,
-			retry_count: retry_count, pem_file: pem_file, id: id, hist: hist, executor_name:executor_name}}
+			retry_count: retry_count, pem_file: pem_file, id: id, hist: hist, executor_name: executor_name}}
 	}
 	worker.Init(lazy)
 	return worker

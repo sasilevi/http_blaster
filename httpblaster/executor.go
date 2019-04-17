@@ -86,7 +86,6 @@ func (self *Executor) load_request_generator() (chan *request_generators.Request
 		}
 		break
 
-
 	case request_generators.LINE2STREAM:
 		req_gen = &request_generators.Line2StreamGenerator{}
 		break

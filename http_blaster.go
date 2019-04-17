@@ -31,11 +31,11 @@ import (
 	"math/rand"
 	"os"
 	"runtime/pprof"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"sort"
 )
 
 var (
@@ -61,40 +61,40 @@ var (
 	//LatencyCollectorGet histogram.LatencyHist// tui.LatencyCollector
 	//LatencyCollectorPut histogram.LatencyHist//tui.LatencyCollector
 	//StatusesCollector   tui.StatusesCollector
-	term_ui       *tui.Term_ui
-	dump_failures bool   = true
-	dump_location string = "."
-	max_concurrent_workloads int = 1000
+	term_ui                  *tui.Term_ui
+	dump_failures            bool   = true
+	dump_location            string = "."
+	max_concurrent_workloads int    = 1000
 )
 
 const AppVersion = "3.0.9"
 
 func init() {
 	const (
-		default_conf          = "example.toml"
-		usage_conf            = "conf file path"
-		usage_version         = "show version"
-		default_showversion   = false
-		usage_results_file    = "results file path"
-		default_results_file  = "example.results"
-		usage_log_file        = "enable stdout to log"
-		default_log_file      = true
-		default_worker_qd     = 10000
-		usage_worker_qd       = "queue depth for worker requests"
-		usage_verbose         = "print debug logs"
-		default_verbose       = false
-		usage_memprofile      = "write mem profile to file"
-		default_memprofile    = false
-		usage_cpuprofile      = "write cpu profile to file"
-		default_cpuprofile    = false
-		usage_enable_ui       = "enable terminal ui"
-		default_enable_ui     = false
-		usage_dump_failures   = "enable 4xx status requests dump to file"
-		defaule_dump_failures = false
-		usage_dump_location   = "location of dump requests"
-		default_dump_location = "."
+		default_conf                     = "example.toml"
+		usage_conf                       = "conf file path"
+		usage_version                    = "show version"
+		default_showversion              = false
+		usage_results_file               = "results file path"
+		default_results_file             = "example.results"
+		usage_log_file                   = "enable stdout to log"
+		default_log_file                 = true
+		default_worker_qd                = 10000
+		usage_worker_qd                  = "queue depth for worker requests"
+		usage_verbose                    = "print debug logs"
+		default_verbose                  = false
+		usage_memprofile                 = "write mem profile to file"
+		default_memprofile               = false
+		usage_cpuprofile                 = "write cpu profile to file"
+		default_cpuprofile               = false
+		usage_enable_ui                  = "enable terminal ui"
+		default_enable_ui                = false
+		usage_dump_failures              = "enable 4xx status requests dump to file"
+		defaule_dump_failures            = false
+		usage_dump_location              = "location of dump requests"
+		default_dump_location            = "."
 		default_max_concurrent_workloads = 1000
-		usage_max_concurrent_workloads ="max concurrent workloads"
+		usage_max_concurrent_workloads   = "max concurrent workloads"
 	)
 	flag.StringVar(&conf_file, "conf", default_conf, usage_conf)
 	flag.StringVar(&conf_file, "c", default_conf, usage_conf+" (shorthand)")
@@ -200,7 +200,7 @@ func start_executors() {
 	for i, e := range executors {
 		ex_group.Add(1)
 		e.Start(&ex_group)
-		if i > 0 && i % max_concurrent_workloads == 0{
+		if i > 0 && i%max_concurrent_workloads == 0 {
 			wait_for_completion()
 		}
 	}
@@ -278,7 +278,7 @@ func report() int {
 		}
 		overall_requests += results.Total
 		if executor.Workload.Type == "GET" {
-			overall_get_executors ++
+			overall_get_executors++
 			overall_get_requests += results.Total
 			overall_get_iops += results.Iops
 			overall_get_avg_lat += results.Avg
@@ -450,7 +450,7 @@ func enable_tui() chan struct{} {
 	return nil
 }
 
-func dump_latencies_histograms() ([]string, []float64, []string, []float64){
+func dump_latencies_histograms() ([]string, []float64, []string, []float64) {
 	latency_get := make(map[int64]int)
 	latency_put := make(map[int64]int)
 	total_get := 0
@@ -470,7 +470,7 @@ func dump_latencies_histograms() ([]string, []float64, []string, []float64){
 			}
 		}
 	}
-	getKeys, getValues :=  dump_latency_histogram(latency_get, total_get, "GET")
+	getKeys, getValues := dump_latency_histogram(latency_get, total_get, "GET")
 	putKeys, putValues := dump_latency_histogram(latency_put, total_put, "PUT")
 	return getKeys, getValues, putKeys, putValues
 
@@ -535,7 +535,6 @@ func dump_latency_histogram(histogram map[int64]int, total int, req_type string)
 	log.Println(strout)
 	return res_strings, res_values
 }
-
 
 func main() {
 	parse_cmd_line_args()
