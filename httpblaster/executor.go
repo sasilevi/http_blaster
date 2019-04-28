@@ -22,15 +22,16 @@ package httpblaster
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/request_generators"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 	"github.com/v3io/http_blaster/httpblaster/worker"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 type executor_result struct {
@@ -73,56 +74,59 @@ type Executor struct {
 
 func (self *Executor) load_request_generator() (chan *request_generators.Request,
 	bool, chan *request_generators.Response) {
-	var req_gen request_generators.Generator
-	var release_req bool = true
-	var ch_response chan *request_generators.Response = nil
+	var reqGen request_generators.Generator
+	var releaseReq = true
+	var chResponse chan *request_generators.Response = nil
 
-	gen_type := strings.ToLower(self.Workload.Generator)
-	switch gen_type {
+	genType := strings.ToLower(self.Workload.Generator)
+	switch genType {
 	case request_generators.PERFORMANCE:
-		req_gen = &request_generators.PerformanceGenerator{}
+		reqGen = &request_generators.PerformanceGenerator{}
 		if self.Workload.FilesCount == 0 {
-			release_req = false
+			releaseReq = false
 		}
 		break
 
 	case request_generators.LINE2STREAM:
-		req_gen = &request_generators.Line2StreamGenerator{}
+		reqGen = &request_generators.Line2StreamGenerator{}
 		break
 	case request_generators.CSV2KV:
-		req_gen = &request_generators.Csv2KV{}
+		reqGen = &request_generators.Csv2KV{}
 		break
 	case request_generators.CSVUPDATEKV:
-		req_gen = &request_generators.CsvUpdateKV{}
+		reqGen = &request_generators.CsvUpdateKV{}
 		break
 	case request_generators.JSON2KV:
-		req_gen = &request_generators.Json2KV{}
+		reqGen = &request_generators.Json2KV{}
 		break
 	case request_generators.LINE2KV:
-		req_gen = &request_generators.Line2KvGenerator{}
+		reqGen = &request_generators.Line2KvGenerator{}
 		break
 	case request_generators.RESTORE:
-		req_gen = &request_generators.RestoreGenerator{}
+		reqGen = &request_generators.RestoreGenerator{}
 		break
 	case request_generators.CSV2STREAM:
-		req_gen = &request_generators.CSV2StreamGenerator{}
+		reqGen = &request_generators.CSV2StreamGenerator{}
 		break
 	case request_generators.LINE2HTTP:
-		req_gen = &request_generators.Line2HttpGenerator{}
+		reqGen = &request_generators.Line2HttpGenerator{}
 		break
 	case request_generators.REPLAY:
-		req_gen = &request_generators.Replay{}
+		reqGen = &request_generators.Replay{}
 		break
 	case request_generators.STREAM_GET:
-		req_gen = &request_generators.StreamGetGenerator{}
-		ch_response = make(chan *request_generators.Response)
+		reqGen = &request_generators.StreamGetGenerator{}
+		chResponse = make(chan *request_generators.Response)
 	case request_generators.CSV2TSDB:
-		req_gen = &request_generators.Csv2TSDB{}
+		reqGen = &request_generators.Csv2TSDB{}
 		break
 	case request_generators.STATS2TSDB:
-		req_gen = &request_generators.Stats2TSDB{}
+		reqGen = &request_generators.Stats2TSDB{}
 		break
-
+	case request_generators.ONELINK:
+		reqGen = &request_generators.Onelink{}
+		chResponse = make(chan *request_generators.Response)
+		break
 	default:
 		panic(fmt.Sprintf("unknown request generator %s", self.Workload.Generator))
 	}
@@ -133,13 +137,13 @@ func (self *Executor) load_request_generator() (chan *request_generators.Request
 		host = self.Host
 	}
 
-	ch_req := req_gen.GenerateRequests(self.Globals, self.Workload, self.TLS_mode, host, nil, self.WorkerQd)
-	return ch_req, release_req, ch_response
+	ch_req := reqGen.GenerateRequests(self.Globals, self.Workload, self.TLS_mode, host, chResponse, self.WorkerQd)
+	return ch_req, releaseReq, chResponse
 }
 
 func (self *Executor) GetWorkerType() worker.WorkerType {
-	gen_type := strings.ToLower(self.Workload.Generator)
-	if gen_type == request_generators.PERFORMANCE {
+	genType := strings.ToLower(self.Workload.Generator)
+	if genType == request_generators.PERFORMANCE {
 		return worker.PERFORMANCE_WORKER
 	}
 	return worker.INGESTION_WORKER
@@ -155,7 +159,7 @@ func (self *Executor) run(wg *sync.WaitGroup) error {
 	workers_wg := sync.WaitGroup{}
 	workers_wg.Add(self.Workload.Workers)
 
-	ch_req, release_req_flag, ch_response := self.load_request_generator()
+	ch_req, releaseReq_flag, chResponse := self.load_request_generator()
 
 	for i := 0; i < self.Workload.Workers; i++ {
 		var host_address string
@@ -179,8 +183,8 @@ func (self *Executor) run(wg *sync.WaitGroup) error {
 		//	ch_latency = self.Ch_put_latency
 		//}
 
-		go w.RunWorker(ch_response, ch_req,
-			&workers_wg, release_req_flag, // ch_latency,
+		go w.RunWorker(chResponse, ch_req,
+			&workers_wg, releaseReq_flag, // ch_latency,
 			//self.Ch_statuses,
 			self.DumpFailures,
 			self.DumpLocation)

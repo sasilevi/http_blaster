@@ -1,0 +1,61 @@
+title = "Workload put example"
+
+[global]
+block_size = 5
+Duration = "160s"
+server="afonelink.onelink.me"
+port="443"
+TLSMode=true
+ [global.StatusCodesAcceptance]
+  200 = 100.0
+  204 = 100.0
+  205 = 100.0
+
+[workloads]
+   [workloads.one]
+    generator="onelink"
+    name="#1"
+    container=""
+    Target="/opfi/dd25845"
+    Duration = "10s"
+    TYPE="GET"
+    workers=10
+    count=0
+    [workloads.one.header]
+    User-Agent="Mozilla/5.0 (Linux; Android 6.0.1; SAMSUNG-SM-G920A Build/MMB29K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/70.0.3538.80 Mobile Safari/537.36"
+
+[workloads.two]
+    generator="onelink"
+    name="#2"
+    container=""
+    Target="opfi/6b7d6af8"
+    Duration = "10s"
+    TYPE="GET"
+    workers=10
+    count=0
+    [workloads.two.header]
+    User-Agent="Mozilla/5.0 (Linux; Android 5.1.1; SM-J105B Build/LMY47V; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/72.0.3626.105 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/211.0.0.43.112;]"
+
+[workloads.tree]
+    generator="onelink"
+    name="#3"
+    container=""
+    Target="/opfi/dd25845"
+    Duration = "10s"
+    TYPE="GET"
+    workers=10
+    count=0
+    [workloads.tree.header]
+    User-Agent="Mozilla/5.0 (Linux; Android 6.0.1; Redmi 4 Build/MMB29M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/69.0.3497.100 Mobile Safari/537.36 (Mobile; afma-sdk-a-v14366020.12451000.1)"
+
+[workloads.four]
+    generator="onelink"
+    name="#4"
+    container=""
+    Target="opfi/6b7d6af8"
+    Duration = "10s"
+    TYPE="GET"
+    workers=10
+    count=0
+    [workloads.four.header]
+    User-Agent="Mozilla/5.0 (Linux; Android 6.0.1; SAMSUNG-SM-G920A Build/MMB29K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/70.0.3538.80 Mobile Safari/537.36"

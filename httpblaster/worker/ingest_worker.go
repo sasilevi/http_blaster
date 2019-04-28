@@ -23,15 +23,16 @@ such restriction.
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
-	"github.com/valyala/fasthttp"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/valyala/fasthttp"
 )
 
 var once sync.Once
@@ -135,11 +136,12 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 		}
 
 		var err error
-		//var d time.Duration
+		var duration time.Duration
 		response := request_generators.AcquireResponse()
 	LOOP:
 		for i := 0; i < w.retry_count; i++ {
-			err, _ = w.send_request(submit_request, response)
+
+			err, duration = w.send_request(submit_request, response)
 			if err != nil {
 				//retry on error
 				response.Response.Reset()
@@ -173,6 +175,7 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 			ch_dump <- r
 		}
 		if ch_resp != nil {
+			response.Duration = duration
 			ch_resp <- response
 		} else {
 			request_generators.ReleaseResponse(response)

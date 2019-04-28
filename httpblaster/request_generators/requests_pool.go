@@ -1,8 +1,10 @@
 package request_generators
 
 import (
-	"github.com/valyala/fasthttp"
 	"sync"
+	"time"
+
+	"github.com/valyala/fasthttp"
 )
 
 type Request struct {
@@ -15,6 +17,7 @@ type Response struct {
 	Cookie   interface{}
 	Id       int64
 	Response *fasthttp.Response
+	Duration time.Duration
 }
 
 var (
