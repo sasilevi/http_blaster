@@ -9,13 +9,13 @@ import (
 
 type Request struct {
 	Cookie  interface{}
-	Id      int64
+	ID      int
 	Request *fasthttp.Request
 }
 
 type Response struct {
 	Cookie   interface{}
-	Id       int64
+	ID       int
 	Response *fasthttp.Response
 	Duration time.Duration
 }
@@ -23,15 +23,18 @@ type Response struct {
 var (
 	requestPool  sync.Pool
 	responsePool sync.Pool
+	ids          int
 )
 
 func AcquireRequest() *Request {
 	v := requestPool.Get()
 	if v == nil {
-		return &Request{Request: fasthttp.AcquireRequest()}
+		ids++
+		return &Request{Request: fasthttp.AcquireRequest(), ID: ids}
 	}
 	return v.(*Request)
 }
+
 func ReleaseRequest(req *Request) {
 	req.Request.Reset()
 	requestPool.Put(req)

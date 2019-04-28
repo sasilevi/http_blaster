@@ -45,21 +45,21 @@ type IngestWorker struct {
 func (w *IngestWorker) UseBase(c WorkerBase) {
 
 }
-func (w *IngestWorker) dump_requests(ch_dump chan *fasthttp.Request, dump_location string,
-	sync_dump *sync.WaitGroup) {
+func (w *IngestWorker) dumpRequests(chDump chan *fasthttp.Request, dumpLocation string,
+	syncDump *sync.WaitGroup) {
 
 	once.Do(func() {
 		t := time.Now()
-		dump_dir = path.Join(dump_location, fmt.Sprintf("BlasterDump-%v", t.Format("2006-01-02-150405")))
+		dump_dir = path.Join(dumpLocation, fmt.Sprintf("BlasterDump-%v", t.Format("2006-01-02-150405")))
 		err := os.Mkdir(dump_dir, 0777)
 		if err != nil {
 			log.Errorf("Fail to create dump dir %v:%v", dump_dir, err.Error())
 		}
 	})
-	defer sync_dump.Done()
+	defer syncDump.Done()
 
 	i := 0
-	for r := range ch_dump {
+	for r := range chDump {
 		file_name := fmt.Sprintf("w%v_request_%v-%v", w.id, i, w.executor_name)
 		file_path := filepath.Join(dump_dir, file_name)
 		log.Info("generating dump file ", file_path)
@@ -93,41 +93,41 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 	wg *sync.WaitGroup, release_req bool,
 	//ch_latency chan time.Duration,
 	//ch_statuses chan int,
-	dump_requests bool,
-	dump_location string) {
+	dumpRequests bool,
+	dumpLocation string) {
 	defer wg.Done()
 	var onceSetRequest sync.Once
 	var oncePrepare sync.Once
 	var request *request_generators.Request
-	submit_request := request_generators.AcquireRequest()
-	var req_type sync.Once
-	var ch_dump chan *fasthttp.Request
-	var sync_dump sync.WaitGroup
+	submitRequest := request_generators.AcquireRequest()
+	var reqType sync.Once
+	var chDump chan *fasthttp.Request
+	var syncDump sync.WaitGroup
 
 	do_once.Do(func() {
 		log.Info("Running Ingestion workers")
 	})
 
-	if dump_requests {
-		ch_dump = make(chan *fasthttp.Request, 100)
-		sync_dump.Add(1)
-		go w.dump_requests(ch_dump, dump_location, &sync_dump)
+	if dumpRequests {
+		chDump = make(chan *fasthttp.Request, 100)
+		syncDump.Add(1)
+		go w.dumpRequests(chDump, dumpLocation, &syncDump)
 	}
 
 	prepareRequest := func() {
-		request.Request.Header.CopyTo(&submit_request.Request.Header)
-		submit_request.Request.AppendBody(request.Request.Body())
-		submit_request.Request.SetHost(w.host)
+		request.Request.Header.CopyTo(&submitRequest.Request.Header)
+		submitRequest.Request.AppendBody(request.Request.Body())
+		submitRequest.Request.SetHost(w.host)
 	}
 
 	for req := range ch_req {
-		req_type.Do(func() {
+		reqType.Do(func() {
 			w.Results.Method = string(req.Request.Header.Method())
 		})
 
 		if release_req {
 			req.Request.SetHost(w.host)
-			submit_request = req
+			submitRequest = req
 		} else {
 			onceSetRequest.Do(func() {
 				request = req
@@ -141,7 +141,7 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 	LOOP:
 		for i := 0; i < w.retry_count; i++ {
 
-			err, duration = w.send_request(submit_request, response)
+			err, duration = w.send_request(submitRequest, response)
 			if err != nil {
 				//retry on error
 				response.Response.Reset()
@@ -166,16 +166,17 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 		//ch_latency <- d
 		if response.Response.StatusCode() >= http.StatusBadRequest &&
 			response.Response.StatusCode() < http.StatusInternalServerError &&
-			dump_requests {
+			dumpRequests {
 			//dump request
 			log.Errorf("Failed to send request: status:%v body:%v", response.Response.StatusCode(), response.Response.Body())
 			r := fasthttp.AcquireRequest()
-			r.SetBody(submit_request.Request.Body())
-			submit_request.Request.CopyTo(r)
-			ch_dump <- r
+			r.SetBody(submitRequest.Request.Body())
+			submitRequest.Request.CopyTo(r)
+			chDump <- r
 		}
 		if ch_resp != nil {
 			response.Duration = duration
+			response.ID = submitRequest.ID
 			ch_resp <- response
 		} else {
 			request_generators.ReleaseResponse(response)
@@ -184,10 +185,10 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 			request_generators.ReleaseRequest(req)
 		}
 	}
-	if dump_requests {
+	if dumpRequests {
 		log.Info("wait for dump routine to end")
-		close(ch_dump)
-		sync_dump.Wait()
+		close(chDump)
+		syncDump.Wait()
 	}
 	w.hist.Close()
 	w.close_connection()

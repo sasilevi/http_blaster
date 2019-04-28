@@ -22,11 +22,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Gurpartap/logrus-stack"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster"
-	"github.com/v3io/http_blaster/httpblaster/config"
-	"github.com/v3io/http_blaster/httpblaster/tui"
 	"io"
 	"math/rand"
 	"os"
@@ -36,6 +31,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+<<<<<<< HEAD
+=======
+
+	logrus_stack "github.com/Gurpartap/logrus-stack"
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster"
+	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/tui"
+>>>>>>> onelink + rabbitmq + fmt
 )
 
 var (
@@ -269,12 +273,17 @@ func report() int {
 	var overall_put_avg_lat time.Duration = 0
 	var overall_get_executors int = 0
 	var overall_put_executors int = 0
+	var overall_statuses map[int]uint64 = make(map[int]uint64)
+
 	errors := make([]error, 0)
 	duration := end_time.Sub(start_time)
 	for _, executor := range executors {
 		results, err := executor.Report()
 		if err != nil {
 			errors = append(errors, err)
+		}
+		for k, v := range results.Statuses {
+			overall_statuses[k] += v
 		}
 		overall_requests += results.Total
 		if executor.Workload.Type == "GET" {
@@ -332,6 +341,7 @@ func report() int {
 	log.Println("Overall IOPS: ", overall_iops)
 	log.Println("Overall GET IOPS: ", overall_get_iops)
 	log.Println("Overall PUT IOPS: ", overall_put_iops)
+	log.Println("Overall Statuses: ", overall_statuses)
 
 	f, err := os.Create(results_file)
 	defer f.Close()

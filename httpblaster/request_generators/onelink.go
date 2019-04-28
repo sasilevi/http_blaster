@@ -2,7 +2,6 @@ package request_generators
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -10,13 +9,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/memqueue"
 	"github.com/valyala/fasthttp"
 )
 
 type Onelink struct {
 	workload config.Workload
 	RequestCommon
-	Host string
+	Host   string
+	errors int64
 }
 
 func (self *Onelink) UseCommon(c RequestCommon) {
@@ -25,6 +26,8 @@ func (self *Onelink) UseCommon(c RequestCommon) {
 
 func (self *Onelink) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, retChan chan *Response, workerQD int) chan *Request {
 	go self.responseHandler(retChan)
+	rabbitmq := memqueue.New("hello", "localhost", "5672", "guest")
+	chUsrAgent := rabbitmq.NewClient()
 	self.workload = wl
 	self.Host = host
 	self.SetBaseUri(tls_mode, host, self.workload.Container, self.workload.Target)
@@ -60,15 +63,12 @@ func (self *Onelink) GenerateRequests(global config.Global, wl config.Workload, 
 		}
 	}()
 
-	ch_req := make(chan *Request, workerQD)
+	chRequsets := make(chan *Request, workerQD)
+
 	go func() {
-		if self.workload.FileIndex == 0 && self.workload.FilesCount == 0 {
-			self.single_file_submitter(ch_req, req.Request, done)
-		} else {
-			self.multi_file_submitter(ch_req, req.Request, done)
-		}
+		self.userAgentSubmitter(chRequsets, chUsrAgent, done)
 	}()
-	return ch_req
+	return chRequsets
 }
 
 func (self *Onelink) clone_request(req *fasthttp.Request) *Request {
@@ -78,64 +78,21 @@ func (self *Onelink) clone_request(req *fasthttp.Request) *Request {
 	return newReq
 }
 
-func (self *Onelink) single_file_submitter(ch_req chan *Request, req *fasthttp.Request, done chan struct{}) {
+func (self *Onelink) userAgentSubmitter(ch_req chan *Request, usrAgentch chan string, done chan struct{}) {
 	var generated int
 LOOP:
 	for {
 		select {
 		case <-done:
 			break LOOP
-		default:
-			request := self.clone_request(req)
-			request.Request.SetHost(self.Host)
-			if self.workload.Count == 0 {
-				ch_req <- request
-				generated++
-			} else if generated < self.workload.Count {
-				ch_req <- request
-				generated++
-			} else {
+		case userAgent, ok := <-usrAgentch:
+			if !ok {
 				break LOOP
 			}
-		}
-	}
-	close(ch_req)
-}
-
-func (self *Onelink) gen_files_uri(file_index int, count int, random bool) chan string {
-	ch := make(chan string, 1000)
-	go func() {
-		if random {
-			for {
-				n := rand.Intn(count)
-				ch <- fmt.Sprintf("%s_%d", self.base_uri, n+file_index)
-			}
-		} else {
-			filePref := file_index
-			for {
-				if filePref == file_index+count {
-					filePref = file_index
-				}
-				ch <- fmt.Sprintf("%s_%d", self.base_uri, filePref)
-				filePref++
-			}
-		}
-	}()
-	return ch
-}
-
-func (self *Onelink) multi_file_submitter(ch_req chan *Request, req *fasthttp.Request, done chan struct{}) {
-	chURI := self.gen_files_uri(self.workload.FileIndex, self.workload.FilesCount, self.workload.Random)
-	var generated int
-LOOP:
-	for {
-		select {
-		case <-done:
-			break LOOP
-		default:
-			uri := <-chURI
-			request := self.clone_request(req)
-			request.Request.SetRequestURI(uri)
+			request := AcquireRequest()
+			request.Request.SetHost(self.Host)
+			request.Request.SetRequestURI(self.base_uri)
+			request.Request.Header.Set("User-Agent", userAgent)
 			if self.workload.Count == 0 {
 				ch_req <- request
 				generated++
@@ -154,7 +111,14 @@ func (self *Onelink) responseHandler(retChan chan *Response) {
 	log.Println("Starting return channel thread")
 	defer log.Println("Terminating response handler")
 	for r := range retChan {
-		log.Println(r.Response.StatusCode(), r.Duration)
-
+		if r.Response.StatusCode() != http.StatusOK {
+			self.errors++
+		}
+		// log.Println(r.Response.StatusCode(), "\t", r.Duration, "\t", r.ID)
+		ReleaseResponse(r)
 	}
+}
+
+func (self *Onelink) CheckResponse() {
+
 }
