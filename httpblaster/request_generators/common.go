@@ -2,11 +2,12 @@ package request_generators
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/valyala/fasthttp"
 	"net/url"
 	"os"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/valyala/fasthttp"
 )
 
 const (
@@ -23,6 +24,7 @@ const (
 	REPLAY      = "replay"
 	CSV2TSDB    = "csv2tsdb"
 	STATS2TSDB  = "stats2tsdb"
+	ONELINK     = "onelink"
 )
 
 type RequestCommon struct {
