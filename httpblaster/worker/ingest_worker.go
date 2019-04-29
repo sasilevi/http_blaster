@@ -177,6 +177,7 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 		if ch_resp != nil {
 			response.Duration = duration
 			response.ID = submitRequest.ID
+			response.Cookie = req.Cookie
 			ch_resp <- response
 		} else {
 			request_generators.ReleaseResponse(response)
