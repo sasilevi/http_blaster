@@ -26,7 +26,7 @@ func (self *Onelink) UseCommon(c RequestCommon) {
 
 func (self *Onelink) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, retChan chan *Response, workerQD int) chan *Request {
 	go self.responseHandler(retChan)
-	rabbitmq := memqueue.New("hello", "localhost", "5672", "guest")
+	rabbitmq := memqueue.New(wl.Topic, "localhost", "5672", "guest")
 	chUsrAgent := rabbitmq.NewClient()
 	self.workload = wl
 	self.Host = host
@@ -93,6 +93,8 @@ LOOP:
 			request.Request.SetHost(self.Host)
 			request.Request.SetRequestURI(self.base_uri)
 			request.Request.Header.Set("User-Agent", userAgent)
+			request.Cookie = userAgent
+			// log.Println(userAgent)
 			if self.workload.Count == 0 {
 				ch_req <- request
 				generated++
@@ -115,6 +117,9 @@ func (self *Onelink) responseHandler(retChan chan *Response) {
 			self.errors++
 		}
 		// log.Println(r.Response.StatusCode(), "\t", r.Duration, "\t", r.ID)
+		// if r.Response.StatusCode() == http.StatusOK {
+		// 	log.Println(r.Response.StatusCode(), r.Cookie)
+		// }
 		ReleaseResponse(r)
 	}
 }
