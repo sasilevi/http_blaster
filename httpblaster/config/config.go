@@ -21,8 +21,9 @@ such restriction.
 package config
 
 import (
-	"github.com/BurntSushi/toml"
 	"time"
+
+	"github.com/BurntSushi/toml"
 )
 
 type duration struct {
@@ -89,6 +90,7 @@ type Workload struct {
 	Separator        string
 	UpdateMode       string
 	UpdateExpression string
+	Topic            string
 }
 
 func LoadConfig(file_path string) (TomlConfig, error) {
