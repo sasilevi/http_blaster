@@ -10,9 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/memqueue"
-	"github.com/valyala/fasthttp"
 )
 
+// Onelink : Generator for onlelink testing
 type Onelink struct {
 	workload config.Workload
 	RequestCommon
@@ -20,28 +20,29 @@ type Onelink struct {
 	errors int64
 }
 
-func (self *Onelink) UseCommon(c RequestCommon) {
+//UseCommon : force abstract use
+func (ol *Onelink) UseCommon(c RequestCommon) {
 
 }
 
-func (self *Onelink) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, retChan chan *Response, workerQD int) chan *Request {
-	go self.responseHandler(retChan)
+// GenerateRequests : impliment abs generate request
+func (ol *Onelink) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, retChan chan *Response, workerQD int) chan *Request {
 	rabbitmq := memqueue.New(wl.Topic, "localhost", "5672", "guest")
 	chUsrAgent := rabbitmq.NewClient()
-	self.workload = wl
-	self.Host = host
-	self.SetBaseUri(tls_mode, host, self.workload.Container, self.workload.Target)
+	ol.workload = wl
+	ol.Host = host
+	ol.SetBaseUri(tls_mode, host, ol.workload.Container, ol.workload.Target)
 	var contentType = "text/html"
 	var payload []byte
 	var DataBfr []byte
 	var ferr error
-	if self.workload.Payload != "" {
-		payload, ferr = ioutil.ReadFile(self.workload.Payload)
+	if ol.workload.Payload != "" {
+		payload, ferr = ioutil.ReadFile(ol.workload.Payload)
 		if ferr != nil {
 			log.Fatal(ferr)
 		}
 	} else {
-		if self.workload.Type == http.MethodPut || self.workload.Type == http.MethodPost {
+		if ol.workload.Type == http.MethodPut || ol.workload.Type == http.MethodPost {
 			DataBfr = make([]byte, global.Block_size, global.Block_size)
 			for i := range DataBfr {
 				DataBfr[i] = byte(rand.Int())
@@ -52,13 +53,13 @@ func (self *Onelink) GenerateRequests(global config.Global, wl config.Workload, 
 		}
 	}
 	req := AcquireRequest()
-	self.PrepareRequest(contentType, self.workload.Header, string(self.workload.Type),
-		self.base_uri, string(payload), host, req.Request)
+	ol.PrepareRequest(contentType, ol.workload.Header, string(ol.workload.Type),
+		ol.base_uri, string(payload), host, req.Request)
 
 	done := make(chan struct{})
 	go func() {
 		select {
-		case <-time.After(self.workload.Duration.Duration):
+		case <-time.After(ol.workload.Duration.Duration):
 			close(done)
 		}
 	}()
@@ -66,19 +67,12 @@ func (self *Onelink) GenerateRequests(global config.Global, wl config.Workload, 
 	chRequsets := make(chan *Request, workerQD)
 
 	go func() {
-		self.userAgentSubmitter(chRequsets, chUsrAgent, done)
+		ol.userAgentSubmitter(chRequsets, chUsrAgent, done)
 	}()
 	return chRequsets
 }
 
-func (self *Onelink) clone_request(req *fasthttp.Request) *Request {
-	newReq := AcquireRequest()
-	req.Header.CopyTo(&newReq.Request.Header)
-	newReq.Request.AppendBody(req.Body())
-	return newReq
-}
-
-func (self *Onelink) userAgentSubmitter(ch_req chan *Request, usrAgentch chan string, done chan struct{}) {
+func (ol *Onelink) userAgentSubmitter(chReq chan *Request, usrAgentch chan string, done chan struct{}) {
 	var generated int
 LOOP:
 	for {
@@ -90,40 +84,20 @@ LOOP:
 				break LOOP
 			}
 			request := AcquireRequest()
-			request.Request.SetHost(self.Host)
-			request.Request.SetRequestURI(self.base_uri)
+			request.Request.SetHost(ol.Host)
+			request.Request.SetRequestURI(ol.base_uri)
 			request.Request.Header.Set("User-Agent", userAgent)
 			request.Cookie = userAgent
-			// log.Println(userAgent)
-			if self.workload.Count == 0 {
-				ch_req <- request
+			if ol.workload.Count == 0 {
+				chReq <- request
 				generated++
-			} else if generated < self.workload.Count {
-				ch_req <- request
+			} else if generated < ol.workload.Count {
+				chReq <- request
 				generated++
 			} else {
 				break LOOP
 			}
 		}
 	}
-	close(ch_req)
-}
-
-func (self *Onelink) responseHandler(retChan chan *Response) {
-	log.Println("Starting return channel thread")
-	defer log.Println("Terminating response handler")
-	for r := range retChan {
-		if r.Response.StatusCode() != http.StatusOK {
-			self.errors++
-		}
-		// log.Println(r.Response.StatusCode(), "\t", r.Duration, "\t", r.ID)
-		// if r.Response.StatusCode() == http.StatusOK {
-		// 	log.Println(r.Response.StatusCode(), r.Cookie)
-		// }
-		ReleaseResponse(r)
-	}
-}
-
-func (self *Onelink) CheckResponse() {
-
+	close(chReq)
 }
