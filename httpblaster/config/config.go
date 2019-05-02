@@ -68,34 +68,40 @@ type Global struct {
 	IgnoreAttrs           []string
 }
 
+//Workload : Workload configuration
 type Workload struct {
-	Name             string
-	Container        string
-	Target           string
-	Type             string
-	Duration         duration
-	Count            int
-	Workers          int
-	Id               int
-	Header           map[string]string
-	Payload          string
-	FileIndex        int
-	FilesCount       int
-	Random           bool
-	Generator        string
-	Schema           string
-	Lazy             int
-	ShardCount       uint32
-	ShardColumn      uint32
-	Separator        string
-	UpdateMode       string
-	UpdateExpression string
-	Topic            string
+	Name              string
+	Container         string
+	Target            string
+	Type              string
+	Duration          duration
+	Count             int
+	Workers           int
+	ID                int
+	Header            map[string]string
+	Payload           string
+	FileIndex         int
+	FilesCount        int
+	Random            bool
+	Generator         string
+	ResponseHandler   string
+	Schema            string
+	Lazy              int
+	ShardCount        uint32
+	ShardColumn       uint32
+	Separator         string
+	UpdateMode        string
+	UpdateExpression  string
+	Topic             string
+	ExpectedStoreLink string
+	MatchExpression   string
 }
 
-func LoadConfig(file_path string) (TomlConfig, error) {
+//LoadConfig : Load configuration file
+//args: filePath : path for the config file
+func LoadConfig(filePath string) (TomlConfig, error) {
 	var config TomlConfig
-	if _, err := toml.DecodeFile(file_path, &config); err != nil {
+	if _, err := toml.DecodeFile(filePath, &config); err != nil {
 		return config, err
 	}
 	return config, nil
