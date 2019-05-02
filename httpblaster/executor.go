@@ -88,7 +88,7 @@ func (ex *Executor) loadResponseHandler(resp chan *request_generators.Response, 
 	default:
 		log.Println("No response handler was selected")
 	}
-	go rh.HandlerResponses(ex.Globals, ex.Workload, resp, wg)
+	go rh.Run(ex.Globals, ex.Workload, resp, wg, rh)
 	return rh
 }
 

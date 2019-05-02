@@ -8,6 +8,7 @@ import (
 )
 
 type IResponseHandler interface {
-	HandlerResponses(global config.Global, workload config.Workload, respoCh chan *request_generators.Response, wg *sync.WaitGroup)
+	HandlerResponses(global config.Global, workload config.Workload, respoCh chan *request_generators.Response)
+	Run(global config.Global, workload config.Workload, respoCh chan *request_generators.Response, wg *sync.WaitGroup, rh IResponseHandler)
 	Report() string
 }

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"sync"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
@@ -15,6 +14,7 @@ import (
 
 // RedirectResponseHandler : response handler for redirect test
 type RedirectResponseHandler struct {
+	BaseResponseHandler
 	r200     *regexp.Regexp
 	r302     *regexp.Regexp
 	notFound *regexp.Regexp
@@ -30,15 +30,14 @@ type errorInfo struct {
 }
 
 // HandlerResponses :  handler function to habdle responses
-func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workload config.Workload, respCh chan *request_generators.Response, wg *sync.WaitGroup) {
+func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workload config.Workload, respCh chan *request_generators.Response) {
 	r.results = make(map[string]*errorInfo)
-	defer log.Println("Terminating response handler")
-	defer wg.Done()
 	r.r200 = regexp.MustCompile(fmt.Sprintf("store_link = %s", workload.ExpectedStoreLink))
 	r.r302 = regexp.MustCompile(fmt.Sprintf("af_android_custom_url=%s", workload.ExpectedStoreLink))
 	r.notFound = regexp.MustCompile("THE APP YOU ARE LOOKING FOR IS NOT AVAILABLE IN THE MARKET YET")
 
 	for resp := range respCh {
+		log.Println(".")
 		if resp.Response.StatusCode() != http.StatusOK && resp.Response.StatusCode() != http.StatusFound {
 			log.Errorln(resp.Response.StatusCode(), resp.Cookie)
 			r.Errors++
