@@ -30,11 +30,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	responsehandlers "github.com/v3io/http_blaster/httpblaster/responseHandlers"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 	"github.com/v3io/http_blaster/httpblaster/worker"
 )
 
-type executor_result struct {
+type executorResults struct {
 	Total       uint64
 	Duration    time.Duration
 	Min         time.Duration
@@ -48,41 +49,60 @@ type executor_result struct {
 	ConRestarts uint32
 }
 
+// Executor : executor is workload execution intity which responsible for workers, generators and response handlers
 type Executor struct {
 	connections int32
 	Workload    config.Workload
 	Globals     config.Global
 	//host                  string
 	//port                  string
-	//tls_mode              bool
+	//tlsMode              bool
 	Host  string
 	Hosts []string
 	//Port                  string
-	TLS_mode       bool
-	results        executor_result
-	workers        []worker.Worker
-	Start_time     time.Time
-	Data_bfr       []byte
-	WorkerQd       int
-	TermUi         *tui.Term_ui
-	Ch_get_latency chan time.Duration
-	Ch_put_latency chan time.Duration
+	TLSMode      bool
+	results      executorResults
+	workers      []worker.Worker
+	StartTime    time.Time
+	DataBfr      []byte
+	WorkerQd     int
+	TermUI       *tui.Term_ui
+	ChGetLatency chan time.Duration
+	ChPutLatency chan time.Duration
 	//Ch_statuses    chan int
 	DumpFailures bool
 	DumpLocation string
 }
 
-func (self *Executor) load_request_generator() (chan *request_generators.Request,
+func (ex *Executor) loadResponseHandler(resp chan *request_generators.Response, wg *sync.WaitGroup) responsehandlers.IResponseHandler {
+	handlerType := strings.ToLower(ex.Workload.ResponseHandler)
+	var rh responsehandlers.IResponseHandler
+
+	switch handlerType {
+	case "":
+		rh = &responsehandlers.NoneHandler{}
+	case responsehandlers.REDIRECT:
+		rh = &responsehandlers.RedirectResponseHandler{}
+	case responsehandlers.DEFAULT:
+		rh = &responsehandlers.Default{}
+	default:
+		log.Println("No response handler was selected")
+	}
+	go rh.HandlerResponses(ex.Globals, ex.Workload, resp, wg)
+	return rh
+}
+
+func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 	bool, chan *request_generators.Response) {
 	var reqGen request_generators.Generator
 	var releaseReq = true
 	var chResponse chan *request_generators.Response = nil
 
-	genType := strings.ToLower(self.Workload.Generator)
+	genType := strings.ToLower(ex.Workload.Generator)
 	switch genType {
 	case request_generators.PERFORMANCE:
 		reqGen = &request_generators.PerformanceGenerator{}
-		if self.Workload.FilesCount == 0 {
+		if ex.Workload.FilesCount == 0 {
 			releaseReq = false
 		}
 		break
@@ -128,66 +148,69 @@ func (self *Executor) load_request_generator() (chan *request_generators.Request
 		chResponse = make(chan *request_generators.Response)
 		break
 	default:
-		panic(fmt.Sprintf("unknown request generator %s", self.Workload.Generator))
+		panic(fmt.Sprintf("unknown request generator %s", ex.Workload.Generator))
 	}
 	var host string
-	if len(self.Hosts) > 0 {
-		host = self.Hosts[0]
+	if len(ex.Hosts) > 0 {
+		host = ex.Hosts[0]
 	} else {
-		host = self.Host
+		host = ex.Host
 	}
 
-	ch_req := reqGen.GenerateRequests(self.Globals, self.Workload, self.TLS_mode, host, chResponse, self.WorkerQd)
+	ch_req := reqGen.GenerateRequests(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd)
 	return ch_req, releaseReq, chResponse
 }
 
-func (self *Executor) GetWorkerType() worker.WorkerType {
-	genType := strings.ToLower(self.Workload.Generator)
+func (ex *Executor) GetWorkerType() worker.WorkerType {
+	genType := strings.ToLower(ex.Workload.Generator)
 	if genType == request_generators.PERFORMANCE {
 		return worker.PERFORMANCE_WORKER
 	}
 	return worker.INGESTION_WORKER
 }
 
-func (self *Executor) GetType() string {
-	return self.Workload.Type
+func (ex *Executor) GetType() string {
+	return ex.Workload.Type
 }
 
-func (self *Executor) run(wg *sync.WaitGroup) error {
+func (ex *Executor) run(wg *sync.WaitGroup) error {
 	defer wg.Done()
-	self.Start_time = time.Now()
+	ex.StartTime = time.Now()
 	workers_wg := sync.WaitGroup{}
-	workers_wg.Add(self.Workload.Workers)
+	rhWg := sync.WaitGroup{}
+	workers_wg.Add(ex.Workload.Workers)
 
-	ch_req, releaseReq_flag, chResponse := self.load_request_generator()
+	ch_req, releaseReq_flag, chResponse := ex.loadRequestGenerator()
+	rhWg.Add(1)
+	rh := ex.loadResponseHandler(chResponse, &rhWg)
 
-	for i := 0; i < self.Workload.Workers; i++ {
+	for i := 0; i < ex.Workload.Workers; i++ {
 		var host_address string
-		if len(self.Hosts) > 0 {
-			server_id := (i) % len(self.Hosts)
-			host_address = self.Hosts[server_id]
+		if len(ex.Hosts) > 0 {
+			server_id := (i) % len(ex.Hosts)
+			host_address = ex.Hosts[server_id]
 		} else {
-			host_address = self.Host
+			host_address = ex.Host
 		}
 
-		server := fmt.Sprintf("%s:%s", host_address, self.Globals.Port)
-		w := worker.NewWorker(self.GetWorkerType(),
-			server, self.Globals.TLSMode, self.Workload.Lazy,
-			self.Globals.RetryOnStatusCodes,
-			self.Globals.RetryCount, self.Globals.PemFile, i, self.Workload.Name)
-		self.workers = append(self.workers, w)
+		server := fmt.Sprintf("%s:%s", host_address, ex.Globals.Port)
+		w := worker.NewWorker(ex.GetWorkerType(),
+			server, ex.Globals.TLSMode, ex.Workload.Lazy,
+			ex.Globals.RetryOnStatusCodes,
+			ex.Globals.RetryCount, ex.Globals.PemFile, i, ex.Workload.Name)
+		ex.workers = append(ex.workers, w)
 		//var ch_latency chan time.Duration
-		//if self.Workload.Type == "GET" {
-		//	ch_latency = self.Ch_get_latency
+		//if ex.Workload.Type == "GET" {
+		//	ch_latency = ex.ChGetLatency
 		//} else {
-		//	ch_latency = self.Ch_put_latency
+		//	ch_latency = ex.ChPutLatency
 		//}
 
 		go w.RunWorker(chResponse, ch_req,
 			&workers_wg, releaseReq_flag, // ch_latency,
-			//self.Ch_statuses,
-			self.DumpFailures,
-			self.DumpLocation)
+			//ex.Ch_statuses,
+			ex.DumpFailures,
+			ex.DumpLocation)
 	}
 	ended := make(chan bool)
 	go func() {
@@ -201,10 +224,10 @@ LOOP:
 		case <-ended:
 			break LOOP
 		case <-tick:
-			if self.TermUi != nil {
+			if ex.TermUI != nil {
 				var put_req_count uint64 = 0
 				var get_req_count uint64 = 0
-				for _, w := range self.workers {
+				for _, w := range ex.workers {
 					wresults := w.GetResults()
 					if w.GetResults().Method == `PUT` {
 						put_req_count += wresults.Count
@@ -212,102 +235,106 @@ LOOP:
 						get_req_count += wresults.Count
 					}
 				}
-				self.TermUi.Update_requests(time.Now().Sub(self.Start_time), put_req_count, get_req_count)
+				ex.TermUI.Update_requests(time.Now().Sub(ex.StartTime), put_req_count, get_req_count)
 			}
 		}
 	}
 
-	self.results.Duration = time.Now().Sub(self.Start_time)
-	self.results.Min = time.Duration(time.Second * 10)
-	self.results.Max = 0
-	self.results.Avg = 0
-	self.results.Total = 0
-	self.results.Iops = 0
-
-	for _, w := range self.workers {
+	ex.results.Duration = time.Now().Sub(ex.StartTime)
+	ex.results.Min = time.Duration(time.Second * 10)
+	ex.results.Max = 0
+	ex.results.Avg = 0
+	ex.results.Total = 0
+	ex.results.Iops = 0
+	log.Println("close response channel")
+	close(chResponse)
+	log.Println("Waiting for response handler to finish")
+	rhWg.Wait()
+	log.Println(rh.Report())
+	for _, w := range ex.workers {
 		wresults := w.GetResults()
-		self.results.ConRestarts += wresults.ConnectionRestarts
-		self.results.ErrorsCount += wresults.ErrorCount
+		ex.results.ConRestarts += wresults.ConnectionRestarts
+		ex.results.ErrorsCount += wresults.ErrorCount
 
-		self.results.Total += wresults.Count
-		if w.GetResults().Min < self.results.Min {
-			self.results.Min = wresults.Min
+		ex.results.Total += wresults.Count
+		if w.GetResults().Min < ex.results.Min {
+			ex.results.Min = wresults.Min
 		}
-		if w.GetResults().Max > self.results.Max {
-			self.results.Max = wresults.Max
+		if w.GetResults().Max > ex.results.Max {
+			ex.results.Max = wresults.Max
 		}
 
-		self.results.Avg +=
-			time.Duration(float64(wresults.Count) / float64(self.results.Total) * float64(wresults.Avg))
+		ex.results.Avg +=
+			time.Duration(float64(wresults.Count) / float64(ex.results.Total) * float64(wresults.Avg))
 		for k, v := range wresults.Codes {
-			self.results.Statuses[k] += v
+			ex.results.Statuses[k] += v
 		}
 	}
 
-	seconds := uint64(self.results.Duration.Seconds())
+	seconds := uint64(ex.results.Duration.Seconds())
 	if seconds == 0 {
 		seconds = 1
 	}
-	self.results.Iops = self.results.Total / seconds
+	ex.results.Iops = ex.results.Total / seconds
 
-	log.Info("Ending ", self.Workload.Name)
+	log.Info("Ending ", ex.Workload.Name)
 
 	return nil
 }
 
-func (self *Executor) Start(wg *sync.WaitGroup) error {
-	self.results.Statuses = make(map[int]uint64)
-	log.Info("at executor start ", self.Workload)
+func (ex *Executor) Start(wg *sync.WaitGroup) error {
+	ex.results.Statuses = make(map[int]uint64)
+	log.Info("at executor start ", ex.Workload)
 	go func() {
-		self.run(wg)
+		ex.run(wg)
 	}()
 	return nil
 }
 
-func (self *Executor) Stop() error {
+func (ex *Executor) Stop() error {
 	return errors.New("Not Implimented!!!")
 }
 
-func (self *Executor) Report() (executor_result, error) {
-	log.Info("report for wl ", self.Workload.Id, ":")
-	log.Info("Total Requests ", self.results.Total)
-	log.Info("Min: ", self.results.Min)
-	log.Info("Max: ", self.results.Max)
-	log.Info("Avg: ", self.results.Avg)
-	log.Info("Connection Restarts: ", self.results.ConRestarts)
-	log.Info("Error Count: ", self.results.ErrorsCount)
+func (ex *Executor) Report() (executorResults, error) {
+	log.Info("report for wl ", ex.Workload.ID, ":")
+	log.Info("Total Requests ", ex.results.Total)
+	log.Info("Min: ", ex.results.Min)
+	log.Info("Max: ", ex.results.Max)
+	log.Info("Avg: ", ex.results.Avg)
+	log.Info("Connection Restarts: ", ex.results.ConRestarts)
+	log.Info("Error Count: ", ex.results.ErrorsCount)
 	log.Info("Statuses: ")
-	for k, v := range self.results.Statuses {
+	for k, v := range ex.results.Statuses {
 		log.Println(fmt.Sprintf("%d - %d", k, v))
 	}
 
-	log.Info("iops: ", self.results.Iops)
-	for err_code, err_count := range self.results.Statuses {
-		if max_errors, ok := self.Globals.StatusCodesAcceptance[strconv.Itoa(err_code)]; ok {
-			if self.results.Total > 0 && err_count > 0 {
-				err_percent := (float64(err_count) * float64(100)) / float64(self.results.Total)
+	log.Info("iops: ", ex.results.Iops)
+	for err_code, err_count := range ex.results.Statuses {
+		if max_errors, ok := ex.Globals.StatusCodesAcceptance[strconv.Itoa(err_code)]; ok {
+			if ex.results.Total > 0 && err_count > 0 {
+				err_percent := (float64(err_count) * float64(100)) / float64(ex.results.Total)
 				log.Infof("status code %d occured %f%% during the test \"%s\"",
-					err_code, err_percent, self.Workload.Name)
+					err_code, err_percent, ex.Workload.Name)
 				if float64(err_percent) > float64(max_errors) {
-					return self.results,
+					return ex.results,
 						errors.New(fmt.Sprintf("Executor %s completed with errors: %+v",
-							self.Workload.Name, self.results.Statuses))
+							ex.Workload.Name, ex.results.Statuses))
 				}
 			}
 		} else {
-			return self.results, errors.New(fmt.Sprintf("Executor %s completed with errors: %+v",
-				self.Workload.Name, self.results.Statuses))
+			return ex.results, errors.New(fmt.Sprintf("Executor %s completed with errors: %+v",
+				ex.Workload.Name, ex.results.Statuses))
 		}
 	}
-	if self.results.ErrorsCount > 0 {
-		return self.results, errors.New("executor completed with errors")
+	if ex.results.ErrorsCount > 0 {
+		return ex.results, errors.New("executor completed with errors")
 	}
-	return self.results, nil
+	return ex.results, nil
 }
 
-func (self *Executor) LatencyHist() map[int64]int {
+func (ex *Executor) LatencyHist() map[int64]int {
 	res := make(map[int64]int)
-	for _, w := range self.workers {
+	for _, w := range ex.workers {
 		hist := w.GetHist()
 		for k, v := range hist {
 			res[k] += v
