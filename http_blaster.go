@@ -43,25 +43,25 @@ import (
 )
 
 var (
-	start_time     time.Time
-	end_time       time.Time
-	wl_id          int32 = -1
-	conf_file      string
-	results_file   string
-	showVersion    bool
-	dataBfr        []byte
-	cpu_profile    = false
-	mem_profile    = false
-	cfg            config.TomlConfig
-	executors      []*httpblaster.Executor
-	ex_group       sync.WaitGroup
-	enable_log     bool
-	log_file       *os.File
-	worker_qd      int  = 10000
-	verbose        bool = false
-	enable_ui      bool
-	ch_put_latency chan time.Duration
-	ch_get_latency chan time.Duration
+	start_time   time.Time
+	end_time     time.Time
+	wl_id        int32 = -1
+	conf_file    string
+	results_file string
+	showVersion  bool
+	dataBfr      []byte
+	cpu_profile  = false
+	mem_profile  = false
+	cfg          config.TomlConfig
+	executors    []*httpblaster.Executor
+	ex_group     sync.WaitGroup
+	enable_log   bool
+	log_file     *os.File
+	worker_qd    int  = 10000
+	verbose      bool = false
+	enable_ui    bool
+	chPutLatency chan time.Duration
+	chGetLatency chan time.Duration
 	//LatencyCollectorGet histogram.LatencyHist// tui.LatencyCollector
 	//LatencyCollectorPut histogram.LatencyHist//tui.LatencyCollector
 	//StatusesCollector   tui.StatusesCollector
@@ -174,24 +174,24 @@ func load_test_Config() {
 }
 
 func generate_executors(term_ui *tui.Term_ui) {
-	//ch_put_latency = LatencyCollectorPut.New()
-	//ch_get_latency = LatencyCollectorGet.New()
+	//chPutLatency = LatencyCollectorPut.New()
+	//chGetLatency = LatencyCollectorGet.New()
 	//ch_statuses := StatusesCollector.New(160, 1)
 
 	for Name, workload := range cfg.Workloads {
 		log.Println("Adding executor for ", Name)
-		workload.Id = get_workload_id()
+		workload.ID = get_workload_id()
 
 		e := &httpblaster.Executor{
-			Globals:        cfg.Global,
-			Workload:       workload,
-			Host:           cfg.Global.Server,
-			Hosts:          cfg.Global.Servers,
-			TLS_mode:       cfg.Global.TLSMode,
-			Data_bfr:       dataBfr,
-			TermUi:         term_ui,
-			Ch_get_latency: ch_get_latency,
-			Ch_put_latency: ch_put_latency,
+			Globals:      cfg.Global,
+			Workload:     workload,
+			Host:         cfg.Global.Server,
+			Hosts:        cfg.Global.Servers,
+			TLSMode:      cfg.Global.TLSMode,
+			DataBfr:      dataBfr,
+			TermUI:       term_ui,
+			ChGetLatency: chGetLatency,
+			ChPutLatency: chPutLatency,
 			//Ch_statuses:    ch_statuses,
 			DumpFailures: dump_failures,
 			DumpLocation: dump_location}
@@ -214,8 +214,8 @@ func wait_for_completion() {
 	log.Println("Wait for executors to finish")
 	ex_group.Wait()
 	end_time = time.Now()
-	//close(ch_get_latency)
-	///close(ch_put_latency)
+	//close(chGetLatency)
+	///close(chPutLatency)
 }
 
 func wait_for_ui_completion(ch_done chan struct{}) {
