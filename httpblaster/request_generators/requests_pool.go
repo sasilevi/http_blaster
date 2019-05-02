@@ -14,10 +14,11 @@ type Request struct {
 }
 
 type Response struct {
-	Cookie   interface{}
-	ID       int
-	Response *fasthttp.Response
-	Duration time.Duration
+	Cookie     interface{}
+	ID         int
+	Response   *fasthttp.Response
+	Duration   time.Duration
+	RequestURI string
 }
 
 var (
