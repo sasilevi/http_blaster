@@ -16,11 +16,12 @@ import (
 // RedirectResponseHandler : response handler for redirect test
 type RedirectResponseHandler struct {
 	BaseResponseHandler
-	r200     *regexp.Regexp
-	r302     *regexp.Regexp
-	notFound *regexp.Regexp
-	Errors   int64
-	results  map[string]*errorInfo
+	r200          *regexp.Regexp
+	r302          *regexp.Regexp
+	notFound      *regexp.Regexp
+	Errors        int64
+	results       map[string]*errorInfo
+	ErrorCounters errorsCounters
 }
 
 type errorInfo struct {
@@ -28,6 +29,11 @@ type errorInfo struct {
 	Status    int
 	NoFound   bool
 	WrongLink bool
+}
+
+type errorsCounters struct {
+	WrongLink int64
+	NotFound  int64
 }
 
 // HandlerResponses :  handler function to habdle responses
@@ -61,9 +67,11 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 		// log.Println("Request: ", response.RequestURI)
 		if r.checkNotFoundResponse(response) {
 			err.NoFound = true
+			r.ErrorCounters.NotFound++
 			r.results[response.Cookie.(*dto.UserAgentMessage).UserAgent] = err
 		} else {
 			err.WrongLink = true
+			r.ErrorCounters.WrongLink++
 			r.results[response.Cookie.(*dto.UserAgentMessage).UserAgent] = err
 		}
 	}
