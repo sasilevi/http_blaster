@@ -247,7 +247,9 @@ LOOP:
 	ex.results.Total = 0
 	ex.results.Iops = 0
 	log.Println("close response channel")
-	close(chResponse)
+	if chResponse != nil {
+		close(chResponse)
+	}
 	log.Println("Waiting for response handler to finish")
 	rhWg.Wait()
 	log.Println(rh.Report())
