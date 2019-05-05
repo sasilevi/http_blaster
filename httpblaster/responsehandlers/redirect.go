@@ -9,6 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/dto"
 	"github.com/v3io/http_blaster/httpblaster/request_generators"
 )
 
@@ -37,9 +38,8 @@ func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workloa
 	r.notFound = regexp.MustCompile("THE APP YOU ARE LOOKING FOR IS NOT AVAILABLE IN THE MARKET YET")
 
 	for resp := range respCh {
-		log.Println(".")
 		if resp.Response.StatusCode() != http.StatusOK && resp.Response.StatusCode() != http.StatusFound {
-			log.Errorln(resp.Response.StatusCode(), resp.Cookie)
+			log.Errorln(resp.Response.StatusCode(), resp.Cookie.(*dto.UserAgentMessage).UserAgent)
 			r.Errors++
 		} else {
 			r.checkResponse(resp)
@@ -61,10 +61,10 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 		// log.Println("Request: ", response.RequestURI)
 		if r.checkNotFoundResponse(response) {
 			err.NoFound = true
-			r.results[response.Cookie.(string)] = err
+			r.results[response.Cookie.(*dto.UserAgentMessage).UserAgent] = err
 		} else {
 			err.WrongLink = true
-			r.results[response.Cookie.(string)] = err
+			r.results[response.Cookie.(*dto.UserAgentMessage).UserAgent] = err
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/dto"
 	"github.com/v3io/http_blaster/httpblaster/memqueue"
 )
 
@@ -72,7 +73,7 @@ func (ol *Onelink) GenerateRequests(global config.Global, wl config.Workload, tl
 	return chRequsets
 }
 
-func (ol *Onelink) userAgentSubmitter(chReq chan *Request, usrAgentch chan string, done chan struct{}) {
+func (ol *Onelink) userAgentSubmitter(chReq chan *Request, usrAgentch chan *dto.UserAgentMessage, done chan struct{}) {
 	var generated int
 LOOP:
 	for {
@@ -86,7 +87,7 @@ LOOP:
 			request := AcquireRequest()
 			request.Request.SetHost(ol.Host)
 			request.Request.SetRequestURI(ol.base_uri)
-			request.Request.Header.Set("User-Agent", userAgent)
+			request.Request.Header.Set("User-Agent", userAgent.UserAgent)
 			request.Cookie = userAgent
 			if ol.workload.Count == 0 {
 				chReq <- request
