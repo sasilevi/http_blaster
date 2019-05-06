@@ -15,4 +15,6 @@ type IResponseHandler interface {
 	Run(global config.Global, workload config.Workload, respoCh chan *request_generators.Response, wg *sync.WaitGroup, rh IResponseHandler)
 	//Impliment this method to report the log
 	Report() string
+	//Return countes collected by the executor
+	Counters() map[string]int64
 }

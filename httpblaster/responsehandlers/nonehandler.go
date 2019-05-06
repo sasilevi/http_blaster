@@ -18,3 +18,7 @@ func (r *NoneHandler) HandlerResponses(global config.Global, workload config.Wor
 func (r *NoneHandler) Report() string {
 	return ""
 }
+
+func (r *NoneHandler) Counters() map[string]int64 {
+	return nil
+}

@@ -25,3 +25,7 @@ func (r *Default) HandlerResponses(global config.Global, workload config.Workloa
 func (r *Default) Report() string {
 	return ""
 }
+
+func (r *Default) Counters() map[string]int64 {
+	return nil
+}

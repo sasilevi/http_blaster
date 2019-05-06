@@ -21,7 +21,7 @@ type RedirectResponseHandler struct {
 	notFound      *regexp.Regexp
 	Errors        int64
 	results       map[string]*errorInfo
-	ErrorCounters errorsCounters
+	ErrorCounters map[string]int64
 }
 
 type errorInfo struct {
@@ -39,6 +39,7 @@ type errorsCounters struct {
 // HandlerResponses :  handler function to habdle responses
 func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workload config.Workload, respCh chan *request_generators.Response) {
 	r.results = make(map[string]*errorInfo)
+	r.ErrorCounters = make(map[string]int64)
 	r.r200 = regexp.MustCompile(fmt.Sprintf("store_link = %s", workload.ExpectedStoreLink))
 	r.r302 = regexp.MustCompile(fmt.Sprintf("af_android_custom_url=%s", workload.ExpectedStoreLink))
 	r.notFound = regexp.MustCompile("THE APP YOU ARE LOOKING FOR IS NOT AVAILABLE IN THE MARKET YET")
@@ -67,11 +68,11 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 		// log.Println("Request: ", response.RequestURI)
 		if r.checkNotFoundResponse(response) {
 			err.NoFound = true
-			r.ErrorCounters.NotFound++
+			r.ErrorCounters["NotFound"]++
 			r.results[response.Cookie.(*dto.UserAgentMessage).UserAgent] = err
 		} else {
 			err.WrongLink = true
-			r.ErrorCounters.WrongLink++
+			r.ErrorCounters["WrongLink"]++
 			r.results[response.Cookie.(*dto.UserAgentMessage).UserAgent] = err
 		}
 	}
@@ -98,4 +99,9 @@ func (r *RedirectResponseHandler) findMatches(response *request_generators.Respo
 func (r *RedirectResponseHandler) Report() string {
 	j, _ := json.MarshalIndent(r.results, "", "  ")
 	return string(j)
+}
+
+// Counters : returns counters for wrong link and not found
+func (r *RedirectResponseHandler) Counters() map[string]int64 {
+	return r.ErrorCounters
 }

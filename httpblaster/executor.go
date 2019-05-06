@@ -36,17 +36,19 @@ import (
 )
 
 type executorResults struct {
-	Total       uint64
-	Duration    time.Duration
-	Min         time.Duration
-	Max         time.Duration
-	Avg         time.Duration
-	Iops        uint64
-	Latency     map[int]int64
-	Statuses    map[int]uint64
-	Errors      map[string]int
-	ErrorsCount uint32
-	ConRestarts uint32
+	Total                  uint64
+	Duration               time.Duration
+	Min                    time.Duration
+	Max                    time.Duration
+	Avg                    time.Duration
+	Iops                   uint64
+	Latency                map[int]int64
+	Statuses               map[int]uint64
+	Errors                 map[string]int
+	ErrorsCount            uint32
+	ConRestarts            uint32
+	ResponseHandlerResults interface{}
+	Counters               map[string]int64
 }
 
 // Executor : executor is workload execution intity which responsible for workers, generators and response handlers
@@ -250,8 +252,11 @@ LOOP:
 	if chResponse != nil {
 		close(chResponse)
 	}
+
 	log.Println("Waiting for response handler to finish")
 	rhWg.Wait()
+	ex.results.Counters = rh.Counters()
+
 	log.Println(rh.Report())
 	for _, w := range ex.workers {
 		wresults := w.GetResults()

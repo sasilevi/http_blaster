@@ -20,6 +20,7 @@ such restriction.
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -274,6 +275,7 @@ func report() int {
 	var overall_get_executors int = 0
 	var overall_put_executors int = 0
 	var overall_statuses map[int]uint64 = make(map[int]uint64)
+	var overall_counters map[string]int64 = make(map[string]int64)
 
 	errors := make([]error, 0)
 	duration := end_time.Sub(start_time)
@@ -281,6 +283,9 @@ func report() int {
 		results, err := executor.Report()
 		if err != nil {
 			errors = append(errors, err)
+		}
+		for k, v := range results.Counters {
+			overall_counters[k] += v
 		}
 		for k, v := range results.Statuses {
 			overall_statuses[k] += v
@@ -342,6 +347,8 @@ func report() int {
 	log.Println("Overall GET IOPS: ", overall_get_iops)
 	log.Println("Overall PUT IOPS: ", overall_put_iops)
 	log.Println("Overall Statuses: ", overall_statuses)
+	countersStr, err := json.MarshalIndent(overall_counters, "", " ")
+	log.Println("Overall counters: \n", string(countersStr))
 
 	f, err := os.Create(results_file)
 	defer f.Close()
