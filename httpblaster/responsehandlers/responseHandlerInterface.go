@@ -17,4 +17,6 @@ type IResponseHandler interface {
 	Report() string
 	//Return countes collected by the executor
 	Counters() map[string]int64
+	//Return error in case of failure else return nil
+	Error() error
 }

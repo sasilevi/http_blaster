@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 
 	log "github.com/sirupsen/logrus"
@@ -66,6 +67,7 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 		// log.Errorln("Body: ", response.Response.String())
 		// log.Errorln("User-Agent: ", response.Cookie)
 		// log.Println("Request: ", response.RequestURI)
+		r.Errors++
 		if r.checkNotFoundResponse(response) {
 			err.NoFound = true
 			r.ErrorCounters["NotFound"]++
@@ -104,4 +106,11 @@ func (r *RedirectResponseHandler) Report() string {
 // Counters : returns counters for wrong link and not found
 func (r *RedirectResponseHandler) Counters() map[string]int64 {
 	return r.ErrorCounters
+}
+
+func (r *RedirectResponseHandler) Error() error {
+	if r.Errors > 0 {
+		return fmt.Errorf("Response handler %v completed with %v errors", reflect.TypeOf(r).Elem().Name(), r.Errors)
+	}
+	return nil
 }

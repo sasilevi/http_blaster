@@ -26,6 +26,11 @@ func (r *Default) Report() string {
 	return ""
 }
 
+// Counters : currenly return nil
 func (r *Default) Counters() map[string]int64 {
+	return nil
+}
+
+func (r *Default) Error() error {
 	return nil
 }

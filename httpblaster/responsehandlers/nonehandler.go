@@ -22,3 +22,7 @@ func (r *NoneHandler) Report() string {
 func (r *NoneHandler) Counters() map[string]int64 {
 	return nil
 }
+
+func (r *NoneHandler) Error() error {
+	return nil
+}

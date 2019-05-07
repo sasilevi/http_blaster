@@ -49,6 +49,7 @@ type executorResults struct {
 	ConRestarts            uint32
 	ResponseHandlerResults interface{}
 	Counters               map[string]int64
+	ResponseErrors         error
 }
 
 // Executor : executor is workload execution intity which responsible for workers, generators and response handlers
@@ -255,6 +256,7 @@ LOOP:
 
 	log.Println("Waiting for response handler to finish")
 	rhWg.Wait()
+	ex.results.ResponseErrors = rh.Error()
 	ex.results.Counters = rh.Counters()
 
 	log.Println(rh.Report())

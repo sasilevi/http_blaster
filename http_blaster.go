@@ -276,6 +276,7 @@ func report() int {
 	var overall_put_executors int = 0
 	var overall_statuses map[int]uint64 = make(map[int]uint64)
 	var overall_counters map[string]int64 = make(map[string]int64)
+	var overall_response_errors = make([]error, 0)
 
 	errors := make([]error, 0)
 	duration := end_time.Sub(start_time)
@@ -283,6 +284,9 @@ func report() int {
 		results, err := executor.Report()
 		if err != nil {
 			errors = append(errors, err)
+		}
+		if results.ResponseErrors != nil {
+			overall_response_errors = append(overall_response_errors, results.ResponseErrors)
 		}
 		for k, v := range results.Counters {
 			overall_counters[k] += v
@@ -384,9 +388,15 @@ func report() int {
 
 	if len(errors) > 0 {
 		for _, e := range errors {
-			log.Println(e)
+			log.Errorln(e)
 		}
 		return 2
+	}
+	if len(overall_response_errors) > 0 {
+		for _, e := range overall_response_errors {
+			log.Errorln(e)
+		}
+		return 3
 	}
 	return 0
 }
