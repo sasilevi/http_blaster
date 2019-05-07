@@ -28,7 +28,7 @@ func (ol *Onelink) UseCommon(c RequestCommon) {
 
 // GenerateRequests : impliment abs generate request
 func (ol *Onelink) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, retChan chan *Response, workerQD int) chan *Request {
-	rabbitmq := memqueue.New(wl.Topic, "localhost", "5672", "guest")
+	rabbitmq := memqueue.New(wl.Topic, global.RbmqAddr, global.RbmqPort, global.RbmqUser)
 	chUsrAgent := rabbitmq.NewClient()
 	ol.workload = wl
 	ol.Host = host

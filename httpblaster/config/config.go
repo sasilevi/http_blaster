@@ -66,6 +66,9 @@ type Global struct {
 	RetryOnStatusCodes    []int
 	RetryCount            int
 	IgnoreAttrs           []string
+	RbmqAddr              string
+	RbmqPort              string
+	RbmqUser              string
 }
 
 //Workload : Workload configuration
