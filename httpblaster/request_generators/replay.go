@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/config"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
 type Replay struct {

@@ -56,7 +56,7 @@ type TomlConfig struct {
 
 type Global struct {
 	Duration              duration
-	Block_size            int32
+	BlockSize             int32
 	Servers               []string
 	Server                string
 	Port                  string
@@ -69,13 +69,22 @@ type Global struct {
 	RbmqAddr              string
 	RbmqPort              string
 	RbmqUser              string
+	BqueryCert            string
+	DbHost                string
+	DbPort                int32
+	DbName                string
+	DbUser                string
+	DbPassword            string
 }
 
 //Workload : Workload configuration
+//			Args:
+//				//Targets : if an map between target and expected response
 type Workload struct {
 	Name              string
 	Container         string
 	Target            string
+	Targets           map[string]string
 	Type              string
 	Duration          duration
 	Count             int
@@ -98,6 +107,10 @@ type Workload struct {
 	Topic             string
 	ExpectedStoreLink string
 	MatchExpression   string
+	Query             string
+	BQProjectID       string
+	Platform          string
+	UADumpToFile      bool
 }
 
 //LoadConfig : Load configuration file

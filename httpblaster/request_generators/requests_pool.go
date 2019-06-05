@@ -38,6 +38,7 @@ func AcquireRequest() *Request {
 
 func ReleaseRequest(req *Request) {
 	req.Request.Reset()
+	req.Cookie = nil
 	requestPool.Put(req)
 }
 

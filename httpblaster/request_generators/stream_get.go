@@ -3,9 +3,6 @@ package request_generators
 import (
 	"bufio"
 	"fmt"
-	"github.com/nu7hatch/gouuid"
-	"github.com/v3io/http_blaster/httpblaster/config"
-	"github.com/v3io/http_blaster/httpblaster/igz_data"
 	"io"
 	"log"
 	"os"
@@ -13,6 +10,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	uuid "github.com/nu7hatch/gouuid"
+	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/igz_data"
 )
 
 type StreamGetGenerator struct {

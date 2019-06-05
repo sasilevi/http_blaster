@@ -3,13 +3,14 @@ package request_generators
 import (
 	"bufio"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/config"
 	"io"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
 type Line2KvGenerator struct {

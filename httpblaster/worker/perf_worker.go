@@ -21,9 +21,11 @@ such restriction.
 */
 
 import (
+	"sync"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/request_generators"
-	"sync"
+	"github.com/v3io/http_blaster/httpblaster/tui"
 	//"time"
 )
 
@@ -38,13 +40,14 @@ func (w *PerfWorker) UseBase(c WorkerBase) {
 func (w *PerfWorker) RunWorker(ch_resp chan *request_generators.Response,
 	ch_req chan *request_generators.Request,
 	wg *sync.WaitGroup, release_req bool,
+	countSubmitted *tui.Counter,
 	//ch_latency chan time.Duration,
 	//ch_statuses chan int,
 	dump_requests bool,
 	dump_location string) {
 	defer wg.Done()
 	var req_type sync.Once
-
+	w.countSubmitted = countSubmitted
 	do_once.Do(func() {
 		log.Info("Running Performance workers")
 	})

@@ -1,11 +1,12 @@
 package request_generators
 
 import (
-	"github.com/v3io/http_blaster/httpblaster/config"
-	"github.com/v3io/http_blaster/httpblaster/data_generator"
 	"runtime"
 	"strconv"
 	"sync"
+
+	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/data_generator"
 )
 
 var gen = data_generator.MemoryGenerator{}

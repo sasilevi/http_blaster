@@ -3,13 +3,14 @@ package request_generators
 import (
 	"bytes"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/config"
-	"github.com/valyala/fasthttp"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/valyala/fasthttp"
 )
 
 type PerformanceGenerator struct {
@@ -37,7 +38,7 @@ func (self *PerformanceGenerator) GenerateRequests(global config.Global, wl conf
 		}
 	} else {
 		if self.workload.Type == http.MethodPut || self.workload.Type == http.MethodPost {
-			Data_bfr = make([]byte, global.Block_size, global.Block_size)
+			Data_bfr = make([]byte, global.BlockSize, global.BlockSize)
 			for i, _ := range Data_bfr {
 				Data_bfr[i] = byte(rand.Int())
 			}

@@ -1,8 +1,10 @@
 package worker
 
 import (
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
 	"sync"
+
+	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/tui"
 	//"time"
 )
 
@@ -15,6 +17,7 @@ type Worker interface {
 		ch_req chan *request_generators.Request,
 		wg *sync.WaitGroup,
 		release_req bool,
+		countSubmitted *tui.Counter,
 		//ch_latency chan time.Duration,
 		//ch_statuses chan int,
 		dump_requests bool,

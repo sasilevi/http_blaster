@@ -44,25 +44,29 @@ import (
 )
 
 var (
-	start_time   time.Time
-	end_time     time.Time
-	wl_id        int32 = -1
-	conf_file    string
-	results_file string
-	showVersion  bool
-	dataBfr      []byte
-	cpu_profile  = false
-	mem_profile  = false
-	cfg          config.TomlConfig
-	executors    []*httpblaster.Executor
-	ex_group     sync.WaitGroup
-	enable_log   bool
-	log_file     *os.File
-	worker_qd    int  = 10000
-	verbose      bool = false
-	enable_ui    bool
-	chPutLatency chan time.Duration
-	chGetLatency chan time.Duration
+	start_time      time.Time
+	end_time        time.Time
+	wl_id           int32 = -1
+	conf_file       string
+	results_file    string
+	showVersion     bool
+	dataBfr         []byte
+	cpu_profile     = false
+	mem_profile     = false
+	cfg             config.TomlConfig
+	executors       []*httpblaster.Executor
+	ex_group        sync.WaitGroup
+	enable_log      bool
+	log_file        *os.File
+	worker_qd       int  = 10000
+	verbose         bool = false
+	enable_ui       bool
+	enable_counters bool
+	chPutLatency    chan time.Duration
+	chGetLatency    chan time.Duration
+	countGenerated  *tui.Counter
+	countSubmitted  *tui.Counter
+	countAnalyzed   *tui.Counter
 	//LatencyCollectorGet histogram.LatencyHist// tui.LatencyCollector
 	//LatencyCollectorPut histogram.LatencyHist//tui.LatencyCollector
 	//StatusesCollector   tui.StatusesCollector
@@ -112,6 +116,7 @@ func init() {
 	flag.IntVar(&worker_qd, "q", default_worker_qd, usage_worker_qd)
 	flag.BoolVar(&enable_ui, "u", default_enable_ui, usage_enable_ui)
 	flag.BoolVar(&dump_failures, "f", defaule_dump_failures, usage_dump_failures)
+	flag.BoolVar(&enable_counters, "enable-counters", true, "enable counters logging during run")
 	flag.StringVar(&dump_location, "l", default_dump_location, usage_dump_location)
 	flag.IntVar(&max_concurrent_workloads, "n", default_max_concurrent_workloads, usage_max_concurrent_workloads)
 }
@@ -166,8 +171,8 @@ func load_test_Config() {
 	}
 	log.Printf("Running test on %s:%s, tls mode=%v, block size=%d, test timeout %v",
 		cfg.Global.Servers, cfg.Global.Port, cfg.Global.TLSMode,
-		cfg.Global.Block_size, cfg.Global.Duration)
-	dataBfr = make([]byte, cfg.Global.Block_size, cfg.Global.Block_size)
+		cfg.Global.BlockSize, cfg.Global.Duration)
+	dataBfr = make([]byte, cfg.Global.BlockSize, cfg.Global.BlockSize)
 	for i, _ := range dataBfr {
 		dataBfr[i] = byte(rand.Int())
 	}
@@ -178,21 +183,27 @@ func generate_executors(term_ui *tui.Term_ui) {
 	//chPutLatency = LatencyCollectorPut.New()
 	//chGetLatency = LatencyCollectorGet.New()
 	//ch_statuses := StatusesCollector.New(160, 1)
+	countSubmitted = tui.NewCounter()
+	countGenerated = tui.NewCounter()
+	countAnalyzed = tui.NewCounter()
 
 	for Name, workload := range cfg.Workloads {
 		log.Println("Adding executor for ", Name)
 		workload.ID = get_workload_id()
 
 		e := &httpblaster.Executor{
-			Globals:      cfg.Global,
-			Workload:     workload,
-			Host:         cfg.Global.Server,
-			Hosts:        cfg.Global.Servers,
-			TLSMode:      cfg.Global.TLSMode,
-			DataBfr:      dataBfr,
-			TermUI:       term_ui,
-			ChGetLatency: chGetLatency,
-			ChPutLatency: chPutLatency,
+			Globals:          cfg.Global,
+			Workload:         workload,
+			Host:             cfg.Global.Server,
+			Hosts:            cfg.Global.Servers,
+			TLSMode:          cfg.Global.TLSMode,
+			DataBfr:          dataBfr,
+			TermUI:           term_ui,
+			ChGetLatency:     chGetLatency,
+			ChPutLatency:     chPutLatency,
+			CounterSubmitter: countSubmitted,
+			CounterGenerated: countGenerated,
+			CounterAnalyzed:  countAnalyzed,
 			//Ch_statuses:    ch_statuses,
 			DumpFailures: dump_failures,
 			DumpLocation: dump_location}
@@ -477,6 +488,27 @@ func enable_tui() chan struct{} {
 	return nil
 }
 
+func enableCounters() chan struct{} {
+	chDone := make(chan struct{})
+	if enable_counters {
+		go func() {
+			tick := time.Tick(time.Second * 1)
+			for {
+				select {
+				case <-chDone:
+					return
+				case <-tick:
+					log.Info("\nSubmitted: ", countSubmitted.GetValue(),
+						"\nGenerated: ", countGenerated.GetValue(),
+						"\nAnalayzed: ", countAnalyzed.GetValue(),
+					)
+				}
+			}
+		}()
+		return chDone
+	}
+	return nil
+}
 func dump_latencies_histograms() ([]string, []float64, []string, []float64) {
 	latency_get := make(map[int64]int)
 	latency_put := make(map[int64]int)
@@ -576,6 +608,7 @@ func main() {
 	defer write_mem_profile()
 
 	start_cpu_profile()
+	enableCounters()
 	generate_executors(term_ui)
 	start_executors()
 	wait_for_completion()

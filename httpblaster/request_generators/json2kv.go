@@ -3,13 +3,14 @@ package request_generators
 import (
 	"bufio"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/config"
-	"github.com/v3io/http_blaster/httpblaster/igz_data"
 	"io"
 	"os"
 	"runtime"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/igz_data"
 )
 
 type Json2KV struct {

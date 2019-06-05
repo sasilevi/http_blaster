@@ -7,15 +7,17 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/histogram"
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
-	"github.com/valyala/fasthttp"
 	"io/ioutil"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/histogram"
+	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/tui"
+	"github.com/valyala/fasthttp"
 )
 
 const DialTimeout = 600 * time.Second
@@ -24,22 +26,23 @@ const RequestTimeout = 600 * time.Second
 var do_once sync.Once
 
 type WorkerBase struct {
-	host          string
-	conn          net.Conn
-	Results       worker_results
-	is_tls_client bool
-	pem_file      string
-	br            *bufio.Reader
-	bw            *bufio.Writer
-	ch_duration   chan time.Duration
-	ch_error      chan error
-	lazy_sleep    time.Duration
-	retry_codes   map[int]interface{}
-	retry_count   int
-	timer         *time.Timer
-	id            int
-	hist          *histogram.LatencyHist
-	executor_name string
+	host           string
+	conn           net.Conn
+	Results        worker_results
+	is_tls_client  bool
+	pem_file       string
+	br             *bufio.Reader
+	bw             *bufio.Writer
+	ch_duration    chan time.Duration
+	ch_error       chan error
+	lazy_sleep     time.Duration
+	retry_codes    map[int]interface{}
+	retry_count    int
+	timer          *time.Timer
+	id             int
+	hist           *histogram.LatencyHist
+	executor_name  string
+	countSubmitted *tui.Counter
 }
 
 func (w *WorkerBase) open_connection() {
@@ -132,7 +135,7 @@ func (w *WorkerBase) send(req *fasthttp.Request, resp *fasthttp.Response,
 		end := time.Now()
 		w.ch_duration <- end.Sub(start)
 	}()
-
+	w.countSubmitted.Add(1)
 	w.timer.Reset(timeout)
 	select {
 	case duration := <-w.ch_duration:

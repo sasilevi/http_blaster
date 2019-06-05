@@ -73,6 +73,10 @@ type Executor struct {
 	ChGetLatency chan time.Duration
 	ChPutLatency chan time.Duration
 	//Ch_statuses    chan int
+	CounterSubmitter *tui.Counter
+	CounterGenerated *tui.Counter
+	CounterAnalyzed  *tui.Counter
+
 	DumpFailures bool
 	DumpLocation string
 }
@@ -91,7 +95,7 @@ func (ex *Executor) loadResponseHandler(resp chan *request_generators.Response, 
 	default:
 		log.Println("No response handler was selected")
 	}
-	go rh.Run(ex.Globals, ex.Workload, resp, wg, rh)
+	go rh.Run(ex.Globals, ex.Workload, resp, wg, rh, ex.CounterAnalyzed)
 	return rh
 }
 
@@ -159,8 +163,9 @@ func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 	} else {
 		host = ex.Host
 	}
-
-	ch_req := reqGen.GenerateRequests(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd)
+	generatot := request_generators.BaseGenerator{}
+	ch_req := generatot.Run(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated, reqGen)
+	// ch_req := reqGen.GenerateRequests(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated)
 	return ch_req, releaseReq, chResponse
 }
 
@@ -208,9 +213,9 @@ func (ex *Executor) run(wg *sync.WaitGroup) error {
 		//} else {
 		//	ch_latency = ex.ChPutLatency
 		//}
-
 		go w.RunWorker(chResponse, ch_req,
 			&workers_wg, releaseReq_flag, // ch_latency,
+			ex.CounterSubmitter,
 			//ex.Ch_statuses,
 			ex.DumpFailures,
 			ex.DumpLocation)

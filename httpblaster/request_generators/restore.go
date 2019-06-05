@@ -5,14 +5,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/json-iterator/go"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/config"
 	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"sync"
+
+	jsoniter "github.com/json-iterator/go"
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
 type RestoreGenerator struct {

@@ -3,15 +3,16 @@ package request_generators
 import (
 	"bufio"
 	"fmt"
-	"github.com/nu7hatch/gouuid"
-	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/config"
-	"github.com/v3io/http_blaster/httpblaster/igz_data"
 	"io"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
+
+	uuid "github.com/nu7hatch/gouuid"
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/igz_data"
 )
 
 type Line2StreamGenerator struct {

@@ -32,6 +32,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/tui"
 	"github.com/valyala/fasthttp"
 )
 
@@ -91,11 +92,13 @@ func (w *IngestWorker) dumpRequests(chDump chan *fasthttp.Request, dumpLocation 
 func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 	ch_req chan *request_generators.Request,
 	wg *sync.WaitGroup, release_req bool,
+	countSubmitted *tui.Counter,
 	//ch_latency chan time.Duration,
 	//ch_statuses chan int,
 	dumpRequests bool,
 	dumpLocation string) {
 	defer wg.Done()
+	w.countSubmitted = countSubmitted
 	var onceSetRequest sync.Once
 	var oncePrepare sync.Once
 	var request *request_generators.Request
