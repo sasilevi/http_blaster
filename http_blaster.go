@@ -32,15 +32,12 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-<<<<<<< HEAD
-=======
 
 	logrus_stack "github.com/Gurpartap/logrus-stack"
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster"
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/tui"
->>>>>>> onelink + rabbitmq + fmt
 )
 
 var (
