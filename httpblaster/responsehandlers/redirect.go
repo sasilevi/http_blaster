@@ -62,7 +62,7 @@ func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workloa
 	defer r.psql.Close()
 
 	for k, v := range workload.Targets {
-		log.Println(v)
+		log.Println("validating", v, "for", k)
 		r.Checks[k] = regexp.MustCompile(v)
 	}
 	r.notFound = regexp.MustCompile("THE APP YOU ARE LOOKING FOR IS NOT AVAILABLE IN THE MARKET YET")
@@ -133,16 +133,21 @@ func (r *RedirectResponseHandler) recordResult(response *request_generators.Resp
 }
 
 func (r *RedirectResponseHandler) checkResponse(response *request_generators.Response) {
-	err := &errorInfo{Status: response.Response.StatusCode()}
+	err := &errorInfo{Status: response.Response.StatusCode(), NotFound: false, WrongLink: false}
 	expectedStoreLink := r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].String()
 	if response.Response.StatusCode() == http.StatusOK {
-		if r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].Match(response.Response.Body()) && r.recordPositive {
-			r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, false, true, false) //record positive results
+		if r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].Match(response.Response.Body()) {
+			if r.recordPositive {
+				r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, false, true, false) //record positive results
+			}
 			return
 		}
 	}
 	body, _ := url.PathUnescape(response.Response.String())
 	if r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].Match([]byte(body)) { //check with unescape body
+		if r.recordPositive {
+			r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, false, true, false) //record positive results
+		}
 		return
 	} else if r.checkNotFoundResponse(response) {
 		err.NotFound = true
@@ -151,6 +156,7 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 		err.WrongLink = true
 		r.ErrorCounters["WrongLink"]++
 	}
+	panic(fmt.Sprintf("%s:\n %s", expectedStoreLink, response.Response.Body()))
 	r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, r.RecordFile, true, true)
 }
 
