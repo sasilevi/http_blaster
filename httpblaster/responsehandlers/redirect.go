@@ -22,16 +22,17 @@ import (
 // RedirectResponseHandler : response handler for redirect test
 type RedirectResponseHandler struct {
 	BaseResponseHandler
-	notFound      *regexp.Regexp
-	Errors        int64
-	results       map[string]*errorInfo
-	ErrorCounters map[string]int64
-	Checks        map[string]*regexp.Regexp
-	responsesHash map[uint32]string
-	dumpDir       string
-	psql          *db.PostgresDB
-	RecordFile    bool
-	positiveHash  uint32
+	notFound       *regexp.Regexp
+	Errors         int64
+	results        map[string]*errorInfo
+	ErrorCounters  map[string]int64
+	Checks         map[string]*regexp.Regexp
+	responsesHash  map[uint32]string
+	dumpDir        string
+	psql           *db.PostgresDB
+	RecordFile     bool
+	positiveHash   uint32
+	recordPositive bool
 }
 
 type errorInfo struct {
@@ -57,6 +58,7 @@ func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workloa
 	r.ErrorCounters = make(map[string]int64)
 	r.psql = db.New(global.DbHost, global.DbPort, global.DbName, global.DbUser, global.DbPassword)
 	r.RecordFile = workload.UADumpToFile
+	r.recordPositive = global.DbRecordAll
 	defer r.psql.Close()
 
 	for k, v := range workload.Targets {
@@ -134,7 +136,7 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 	err := &errorInfo{Status: response.Response.StatusCode()}
 	expectedStoreLink := r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].String()
 	if response.Response.StatusCode() == http.StatusOK {
-		if r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].Match(response.Response.Body()) {
+		if r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].Match(response.Response.Body()) && r.recordPositive {
 			r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, false, true, false) //record positive results
 			return
 		}

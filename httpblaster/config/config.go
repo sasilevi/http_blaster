@@ -75,6 +75,7 @@ type Global struct {
 	DbName                string
 	DbUser                string
 	DbPassword            string
+	DbRecordAll           bool
 }
 
 //Workload : Workload configuration
