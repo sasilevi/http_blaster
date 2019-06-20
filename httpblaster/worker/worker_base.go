@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -107,7 +108,7 @@ func (w *WorkerBase) close_connection() {
 	}
 }
 
-func (w *WorkerBase) restart_connection() {
+func (w *WorkerBase) restart_connection(err error) {
 	w.close_connection()
 	w.open_connection()
 	w.Results.ConnectionRestarts++
@@ -143,6 +144,9 @@ func (w *WorkerBase) send(req *fasthttp.Request, resp *fasthttp.Response,
 		return nil, duration
 	case err := <-w.ch_error:
 		log.Debugf("request completed with error:%s", err.Error())
+		if strings.Contains(err.Error(), "does not look like a TLS handshake") {
+			panic(err.Error())
+		}
 		return err, timeout
 	case <-w.timer.C:
 		log.Printf("Error: request didn't complete on timeout url:%s", req.URI().String())
@@ -177,10 +181,9 @@ func (w *WorkerBase) send_request(req *request_generators.Request, response *req
 	} else {
 		w.Results.ErrorCount++
 		log.Debugln(err.Error())
-
 	}
 	if response.Response.ConnectionClose() {
-		w.restart_connection()
+		w.restart_connection(err)
 	}
 
 	return err, duration
