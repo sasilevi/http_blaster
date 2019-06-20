@@ -80,6 +80,7 @@ CREATE TABLE public.ua (
 	osName text,
 	osPlatform text,
 	osVersion text,
+	expectedStoreLink text,
 	time timestamp
 );
 
@@ -119,7 +120,7 @@ func (p *PostgresDB) InsertResponseBody(body []byte, id uint32) {
 }
 
 // InsertUserAgentInfo : Inserts user agent into uatest table with coresponding body and worng link or not found analysis
-func (p *PostgresDB) InsertUserAgentInfo(userAgent string, id uint32, target string, wrongLink, notFound bool, httpStatus int) {
+func (p *PostgresDB) InsertUserAgentInfo(userAgent string, id uint32, target string, wrongLink, notFound bool, httpStatus int, expectedStoreLink string) {
 	ua := uasurfer.Parse(userAgent)
 	browserName := ua.Browser.Name.String()
 	browserVersion := ua.Browser.Version.String()
@@ -128,8 +129,8 @@ func (p *PostgresDB) InsertUserAgentInfo(userAgent string, id uint32, target str
 	osPlatform := ua.OS.Platform.String()
 	osVersion := ua.OS.Version.String()
 
-	_, err := p.db.Exec("INSERT INTO ua (useragent, bodyid, wronglink, notfound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, time) VALUES ($1::text, $2::bigint, $3::boolean, $4::boolean, $5::text, $6::integer, $7::text, $8::text, $9::text, $10::text, $11::text, $12::text, $13::timestamp )", // on conflict (useragent) do nothing
-		userAgent, id, wrongLink, notFound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, TestTime)
+	_, err := p.db.Exec("INSERT INTO ua (useragent, bodyid, wronglink, notfound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, time) VALUES ($1::text, $2::bigint, $3::boolean, $4::boolean, $5::text, $6::integer, $7::text, $8::text, $9::text, $10::text, $11::text, $12::text, $13::timestamp )", // on conflict (useragent) do nothing
+		userAgent, id, wrongLink, notFound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, TestTime)
 	if err != nil {
 		fmt.Println(userAgent)
 		panic(err)

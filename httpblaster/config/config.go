@@ -81,36 +81,34 @@ type Global struct {
 //			Args:
 //				//Targets : if an map between target and expected response
 type Workload struct {
-	Name              string
-	Container         string
-	Target            string
-	Targets           map[string]string
-	Type              string
-	Duration          duration
-	Count             int
-	Workers           int
-	ID                int
-	Header            map[string]string
-	Payload           string
-	FileIndex         int
-	FilesCount        int
-	Random            bool
-	Generator         string
-	ResponseHandler   string
-	Schema            string
-	Lazy              int
-	ShardCount        uint32
-	ShardColumn       uint32
-	Separator         string
-	UpdateMode        string
-	UpdateExpression  string
-	Topic             string
-	ExpectedStoreLink string
-	MatchExpression   string
-	Query             string
-	BQProjectID       string
-	Platform          string
-	UADumpToFile      bool
+	Name             string
+	Container        string
+	Target           string
+	Targets          map[string]string
+	Type             string
+	Duration         duration
+	Count            int
+	Workers          int
+	ID               int
+	Header           map[string]string
+	Payload          string
+	FileIndex        int
+	FilesCount       int
+	Random           bool
+	Generator        string
+	ResponseHandler  string
+	Schema           string
+	Lazy             int
+	ShardCount       uint32
+	ShardColumn      uint32
+	Separator        string
+	UpdateMode       string
+	UpdateExpression string
+	Topic            string
+	MatchExpression  string
+	Query            string
+	BQProjectID      string
+	UADumpToFile     bool
 }
 
 //LoadConfig : Load configuration file

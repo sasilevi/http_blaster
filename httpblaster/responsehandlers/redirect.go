@@ -22,8 +22,6 @@ import (
 // RedirectResponseHandler : response handler for redirect test
 type RedirectResponseHandler struct {
 	BaseResponseHandler
-	r200          *regexp.Regexp
-	r302          *regexp.Regexp
 	notFound      *regexp.Regexp
 	Errors        int64
 	results       map[string]*errorInfo
@@ -65,14 +63,11 @@ func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workloa
 		log.Println(v)
 		r.Checks[k] = regexp.MustCompile(v)
 	}
-	r.r200 = regexp.MustCompile(fmt.Sprintf("store_link = %s", workload.ExpectedStoreLink))
-	r.r302 = regexp.MustCompile(fmt.Sprintf("af_android_custom_url=%s", workload.ExpectedStoreLink))
 	r.notFound = regexp.MustCompile("THE APP YOU ARE LOOKING FOR IS NOT AVAILABLE IN THE MARKET YET")
-
 	for resp := range respCh {
 		if resp.Response.StatusCode() != http.StatusOK && resp.Response.StatusCode() != http.StatusFound {
 			log.Errorln(resp.Response.StatusCode(), resp.Cookie.(*dto.UserAgentMessage).UserAgent)
-			r.recordResult(resp, false, true, r.RecordFile, true, true)
+			r.recordResult(resp, false, true, "", r.RecordFile, true, true)
 			r.Errors++
 		} else {
 			r.checkResponse(resp)
@@ -113,7 +108,7 @@ func (r *RedirectResponseHandler) dumpUserAgentToFile(hash uint32, userAgent str
 	// log.Println("Dumping file:", filePath)
 }
 
-func (r *RedirectResponseHandler) recordResult(response *request_generators.Response, wrongLink bool, notFound bool, file bool, db bool, saveBody bool) {
+func (r *RedirectResponseHandler) recordResult(response *request_generators.Response, wrongLink bool, notFound bool, expectedStoreLink string, file bool, db bool, saveBody bool) {
 	body := response.Response.Body()
 	userAgent := response.Cookie.(*dto.UserAgentMessage).UserAgent
 	target := response.Cookie.(*dto.UserAgentMessage).Target
@@ -126,21 +121,21 @@ func (r *RedirectResponseHandler) recordResult(response *request_generators.Resp
 	if db {
 		if saveBody {
 			r.psql.InsertResponseBody(body, hash)
-			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode())
+			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
 		} else {
 			// in case of positive we would not save the body its too much data
 			r.psql.InsertResponseBody([]byte(""), r.positiveHash)
-			r.psql.InsertUserAgentInfo(userAgent, r.positiveHash, target, wrongLink, notFound, response.Response.StatusCode())
+			r.psql.InsertUserAgentInfo(userAgent, r.positiveHash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
 		}
 	}
 }
 
 func (r *RedirectResponseHandler) checkResponse(response *request_generators.Response) {
 	err := &errorInfo{Status: response.Response.StatusCode()}
-
+	expectedStoreLink := r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].String()
 	if response.Response.StatusCode() == http.StatusOK {
 		if r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].Match(response.Response.Body()) {
-			r.recordResult(response, err.WrongLink, err.NotFound, false, true, false) //record positive results
+			r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, false, true, false) //record positive results
 			return
 		}
 	}
@@ -154,7 +149,7 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 		err.WrongLink = true
 		r.ErrorCounters["WrongLink"]++
 	}
-	r.recordResult(response, err.WrongLink, err.NotFound, r.RecordFile, true, true)
+	r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, r.RecordFile, true, true)
 }
 
 func (r *RedirectResponseHandler) checkNotFoundResponse(response *request_generators.Response) bool {
@@ -162,16 +157,6 @@ func (r *RedirectResponseHandler) checkNotFoundResponse(response *request_genera
 		return true
 	}
 	return false
-}
-
-func (r *RedirectResponseHandler) findMatches(response *request_generators.Response) bool {
-
-	if response.Response.StatusCode() == http.StatusFound { //302
-		body, _ := url.PathUnescape(response.Response.String())
-		return r.r302.Match([]byte(body))
-	}
-
-	return r.r200.Match(response.Response.Body())
 }
 
 // Report : report redirect responses assertions
