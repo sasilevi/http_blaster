@@ -156,7 +156,6 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 		err.WrongLink = true
 		r.ErrorCounters["WrongLink"]++
 	}
-	panic(fmt.Sprintf("%s:\n %s", expectedStoreLink, response.Response.Body()))
 	r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, r.RecordFile, true, true)
 }
 
