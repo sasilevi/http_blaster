@@ -2,10 +2,11 @@ package histogram
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"sort"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type LatencyHist struct {
@@ -30,7 +31,6 @@ func (self *LatencyHist) place(v int64) {
 }
 
 func (self *LatencyHist) New() chan time.Duration {
-	log.Debugln("new latency hist")
 	self.hist = make(map[int64]int)
 	self.wg.Add(1)
 
