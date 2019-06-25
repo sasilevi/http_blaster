@@ -2,6 +2,7 @@ package bquery
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"cloud.google.com/go/bigquery"
@@ -29,6 +30,9 @@ func (b *Bquery) Query(ctx context.Context, projectID, queryStr, certs string) c
 		if err != nil {
 			panic(err.Error())
 		}
+
+		log.Println(fmt.Sprintf("Total raws returned from query:%v", it.TotalRows))
+
 		for {
 			var values map[string]bigquery.Value
 			err := it.Next(&values)
