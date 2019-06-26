@@ -181,6 +181,7 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 			response.Duration = duration
 			response.ID = submitRequest.ID
 			response.Cookie = req.Cookie
+			response.Endpoint = string(req.Request.Host())
 			response.RequestURI = string(submitRequest.Request.RequestURI())
 			ch_resp <- response
 		} else {

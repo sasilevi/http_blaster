@@ -19,6 +19,7 @@ type Response struct {
 	Response   *fasthttp.Response
 	Duration   time.Duration
 	RequestURI string
+	Endpoint   string
 }
 
 var (

@@ -123,10 +123,10 @@ func (r *RedirectResponseHandler) recordResult(response *request_generators.Resp
 	if db {
 		if saveBody {
 			r.psql.InsertResponseBody(body, hash)
-			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
+			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink, response.Endpoint)
 		} else {
 			// in case of positive we would not save the body its too much data
-			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
+			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink, response.Endpoint)
 		}
 	}
 }
