@@ -60,7 +60,7 @@ func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workloa
 	r.RecordFile = workload.UADumpToFile
 	r.recordPositive = global.DbRecordAll
 	defer r.psql.Close()
-
+	r.psql.InsertResponseBody([]byte(""), r.positiveHash)
 	for k, v := range workload.Targets {
 		log.Println("validating", v, "for", k)
 		r.Checks[k] = regexp.MustCompile(v)
@@ -106,16 +106,16 @@ func (r *RedirectResponseHandler) dumpUserAgentToFile(hash uint32, userAgent str
 	}
 	f.WriteString(userAgent + "\n")
 	f.Close()
-
-	// log.Println("Dumping file:", filePath)
 }
 
 func (r *RedirectResponseHandler) recordResult(response *request_generators.Response, wrongLink bool, notFound bool, expectedStoreLink string, file bool, db bool, saveBody bool) {
 	body := response.Response.Body()
 	userAgent := response.Cookie.(*dto.UserAgentMessage).UserAgent
 	target := response.Cookie.(*dto.UserAgentMessage).Target
-	hash := r.hash(string(body))
-
+	hash := r.positiveHash
+	if wrongLink || notFound {
+		hash = r.hash(string(body))
+	}
 	if file {
 		r.dumpResponseToFile(hash, body)
 		r.dumpUserAgentToFile(hash, userAgent, false, false, target)
@@ -126,11 +126,32 @@ func (r *RedirectResponseHandler) recordResult(response *request_generators.Resp
 			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
 		} else {
 			// in case of positive we would not save the body its too much data
-			r.psql.InsertResponseBody([]byte(""), r.positiveHash)
-			r.psql.InsertUserAgentInfo(userAgent, r.positiveHash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
+			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
 		}
 	}
 }
+
+// func (r *RedirectResponseHandler) recordResult(response *request_generators.Response, wrongLink bool, notFound bool, expectedStoreLink string, file bool, db bool, saveBody bool) {
+// 	body := response.Response.Body()
+// 	userAgent := response.Cookie.(*dto.UserAgentMessage).UserAgent
+// 	target := response.Cookie.(*dto.UserAgentMessage).Target
+// 	hash := r.hash(string(body))
+
+// 	if file {
+// 		r.dumpResponseToFile(hash, body)
+// 		r.dumpUserAgentToFile(hash, userAgent, false, false, target)
+// 	}
+// 	if db {
+// 		if saveBody {
+// 			r.psql.InsertResponseBody(body, hash)
+// 			r.psql.InsertUserAgentInfo(userAgent, hash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
+// 		} else {
+// 			// in case of positive we would not save the body its too much data
+// 			r.psql.InsertResponseBody([]byte(""), r.positiveHash)
+// 			r.psql.InsertUserAgentInfo(userAgent, r.positiveHash, target, wrongLink, notFound, response.Response.StatusCode(), expectedStoreLink)
+// 		}
+// 	}
+// }
 
 func (r *RedirectResponseHandler) checkResponse(response *request_generators.Response) {
 	err := &errorInfo{Status: response.Response.StatusCode(), NotFound: false, WrongLink: false}
