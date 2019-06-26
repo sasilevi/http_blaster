@@ -18,6 +18,8 @@ type PostgresDB struct {
 	db       *sql.DB
 	host     string
 	port     int32
+	uaStmt   *sql.Stmt
+	bodyStmt *sql.Stmt
 }
 
 var TestTime = time.Now()
@@ -113,7 +115,8 @@ ALTER TABLE ONLY public.ua
 
 // InsertResponseBody : Inserts response body into responses table
 func (p *PostgresDB) InsertResponseBody(body []byte, id uint32) {
-	_, err := p.db.Exec("INSERT INTO responses (id, body)	VALUES ($1::bigint, $2::bytea) on conflict (id) do nothing", id, body)
+	_, err := p.bodyStmt.Exec(id, body)
+	// _, err := p.db.Exec("INSERT INTO responses (id, body)	VALUES ($1::bigint, $2::bytea) on conflict (id) do nothing", id, body)
 	if err != nil {
 		panic(err)
 	}
@@ -129,8 +132,9 @@ func (p *PostgresDB) InsertUserAgentInfo(userAgent string, id uint32, target str
 	osPlatform := ua.OS.Platform.StringTrimPrefix()
 	osVersion := ua.OS.Version.String()
 
-	_, err := p.db.Exec("INSERT INTO ua (useragent, bodyid, wronglink, notfound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, time) VALUES ($1::text, $2::bigint, $3::boolean, $4::boolean, $5::text, $6::integer, $7::text, $8::text, $9::text, $10::text, $11::text, $12::text, $13::text, $14::timestamp)", // on conflict (useragent) do nothing
-		userAgent, id, wrongLink, notFound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, TestTime)
+	// _, err := p.db.Exec("INSERT INTO ua (useragent, bodyid, wronglink, notfound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, time) VALUES ($1::text, $2::bigint, $3::boolean, $4::boolean, $5::text, $6::integer, $7::text, $8::text, $9::text, $10::text, $11::text, $12::text, $13::text, $14::timestamp)", // on conflict (useragent) do nothing
+	// userAgent, id, wrongLink, notFound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, TestTime)
+	_, err := p.uaStmt.Exec(userAgent, id, wrongLink, notFound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, TestTime)
 	if err != nil {
 		fmt.Println(userAgent)
 		panic(err)
@@ -198,6 +202,7 @@ func (p *PostgresDB) createTables() error {
 
 // New : Return new PostgresDB
 func New(host string, port int32, dbname, user, password string) *PostgresDB {
+	var err error
 	p := &PostgresDB{
 		dbName:   dbname,
 		user:     user,
@@ -206,5 +211,14 @@ func New(host string, port int32, dbname, user, password string) *PostgresDB {
 		port:     port,
 	}
 	p.open()
+	p.uaStmt, err = p.db.Prepare("INSERT INTO ua (useragent, bodyid, wronglink, notfound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, time) VALUES ($1::text, $2::bigint, $3::boolean, $4::boolean, $5::text, $6::integer, $7::text, $8::text, $9::text, $10::text, $11::text, $12::text, $13::text, $14::timestamp)")
+	if err != nil {
+		panic(err.Error())
+	}
+	p.bodyStmt, err = p.db.Prepare("INSERT INTO responses (id, body)	VALUES ($1::bigint, $2::bytea) on conflict (id) do nothing")
+	if err != nil {
+		panic(err.Error())
+	}
+
 	return p
 }
