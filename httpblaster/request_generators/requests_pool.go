@@ -34,7 +34,7 @@ func AcquireRequest() *Request {
 	v := requestPool.Get()
 	if v == nil {
 		ids++
-		return &Request{Request: fasthttp.AcquireRequest(), ID: ids}
+		return &Request{Request: fasthttp.AcquireRequest(), ID: ids, ExpectedConnectionStatus: true}
 	}
 	return v.(*Request)
 }
