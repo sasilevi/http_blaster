@@ -8,9 +8,12 @@ import (
 )
 
 type Request struct {
-	Cookie  interface{}
-	ID      int
-	Request *fasthttp.Request
+	Cookie          interface{}
+	ID              int
+	Request         *fasthttp.Request
+	Host            string
+	ResetConnection bool //reset the connection before request
+	ExpectedSuccess bool
 }
 
 type Response struct {

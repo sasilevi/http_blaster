@@ -129,7 +129,7 @@ LOOP:
 				ua := userAgent.(string)
 				request := AcquireRequest()
 				request.Request.SetHost(ol.Host)
-				request.Request.SetRequestURI(ol.GetUri(k))
+				request.Request.SetRequestURI(ol.GetUri(k, ""))
 				request.Request.Header.Set("User-Agent", ua)
 				request.Cookie = dto.AcquireUaObj(ua, k)
 				chReq <- request

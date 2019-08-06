@@ -13,4 +13,5 @@ type worker_results struct {
 	Method             string
 	ConnectionRestarts uint32
 	ErrorCount         uint32
+	ConnectionErrors   uint32
 }

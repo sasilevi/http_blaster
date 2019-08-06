@@ -285,11 +285,13 @@ func report() int {
 	var overall_statuses map[int]uint64 = make(map[int]uint64)
 	var overall_counters map[string]int64 = make(map[string]int64)
 	var overall_response_errors = make([]error, 0)
+	var overall_connection_errors uint32 = 0
 
 	errors := make([]error, 0)
 	duration := end_time.Sub(start_time)
 	for _, executor := range executors {
 		results, err := executor.Report()
+		overall_connection_errors += results.ConnectionErrors
 		if err != nil {
 			errors = append(errors, err)
 		}
@@ -405,6 +407,10 @@ func report() int {
 			log.Errorln(e)
 		}
 		return 3
+	}
+	if overall_connection_errors > 0 {
+		log.Errorln("Test had ", overall_connection_errors, " connection errors")
+		return 4
 	}
 	return 0
 }

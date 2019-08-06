@@ -25,6 +25,7 @@ const (
 	CSV2TSDB    = "csv2tsdb"
 	STATS2TSDB  = "stats2tsdb"
 	ONELINK     = "onelink"
+	IMPERSONATE = "impersonate"
 )
 
 type RequestCommon struct {
@@ -99,7 +100,7 @@ func (self *RequestCommon) SetBaseUri(tls_mode bool, host string, container stri
 	self.base_uri = fmt.Sprintf("%s://%s/%s/%s", http, host, container, target)
 }
 
-func (self *RequestCommon) GetUri(target string) string {
+func (self *RequestCommon) GetUri(target string, params string) string {
 	u := url.URL{Path: fmt.Sprintf("%s/%s", self.base_uri, target)}
-	return u.EscapedPath()
+	return u.EscapedPath() + params
 }

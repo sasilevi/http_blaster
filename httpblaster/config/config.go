@@ -110,6 +110,8 @@ type Workload struct {
 	Query            string
 	BQProjectID      string
 	UADumpToFile     bool
+	ImpersonateHosts map[string]bool
+	Args             string
 }
 
 //LoadConfig : Load configuration file

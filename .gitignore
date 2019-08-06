@@ -9,3 +9,7 @@ http_blaster.iml
 BlasterDump-*
 *.results*
 WrongLinksDumps/*
+*ns*.json
+*stack*.yml
+*.sh
+onelink*.toml

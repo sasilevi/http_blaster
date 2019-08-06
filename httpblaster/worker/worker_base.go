@@ -46,14 +46,18 @@ type WorkerBase struct {
 	countSubmitted *tui.Counter
 }
 
-func (w *WorkerBase) open_connection() {
+func (w *WorkerBase) open_connection(host string) error {
+	log.Debug("open connection")
 	conn, err := fasthttp.DialTimeout(w.host, DialTimeout)
 	if err != nil {
 		panic(err)
 		// log.Printf("open connection error: %s\n", err)
 	}
 	if w.is_tls_client {
-		w.conn = w.open_secure_connection(conn)
+		w.conn, err = w.open_secure_connection(conn, host)
+		if err != nil {
+			return err
+		}
 	} else {
 		w.conn = conn
 	}
@@ -62,9 +66,11 @@ func (w *WorkerBase) open_connection() {
 		log.Errorf("Reader is nil, conn: %v", conn)
 	}
 	w.bw = bufio.NewWriter(w.conn)
+	return nil
 }
 
-func (w *WorkerBase) open_secure_connection(conn net.Conn) *tls.Conn {
+func (w *WorkerBase) open_secure_connection(conn net.Conn, host string) (*tls.Conn, error) {
+	log.Debug("open secure connection")
 	var conf *tls.Config
 	if w.pem_file != "" {
 		var pem_data []byte
@@ -88,18 +94,22 @@ func (w *WorkerBase) open_secure_connection(conn net.Conn) *tls.Conn {
 		clientCertPool.AddCert(cert)
 
 		conf = &tls.Config{
-			ServerName:         w.host,
+			ServerName:         host,
 			ClientAuth:         tls.RequireAndVerifyClientCert,
 			InsecureSkipVerify: true,
 			ClientCAs:          clientCertPool,
 		}
 	} else {
 		conf = &tls.Config{
-			InsecureSkipVerify: true,
+			ServerName:         host,
+			ClientAuth:         tls.RequireAndVerifyClientCert,
+			InsecureSkipVerify: false,
 		}
 	}
 	c := tls.Client(conn, conf)
-	return c
+
+	// log.Info(c.Handshake())
+	return c, c.Handshake()
 }
 
 func (w *WorkerBase) close_connection() {
@@ -108,10 +118,12 @@ func (w *WorkerBase) close_connection() {
 	}
 }
 
-func (w *WorkerBase) restart_connection(err error) {
+func (w *WorkerBase) restart_connection(err error, host string) error {
+	log.Debugln("restart connection with ", host)
 	w.close_connection()
-	w.open_connection()
+	oerr := w.open_connection(host)
 	w.Results.ConnectionRestarts++
+	return oerr
 }
 
 func (w *WorkerBase) send(req *fasthttp.Request, resp *fasthttp.Response,
@@ -165,6 +177,25 @@ func (w *WorkerBase) send_request(req *request_generators.Request, response *req
 		time.Sleep(w.lazy_sleep)
 	}
 
+	if req.ResetConnection {
+		if w.restart_connection(errors.New(""), req.Host) != nil {
+			if req.ExpectedSuccess {
+				log.Errorln("connection error with host", req.Host)
+				w.Results.ConnectionErrors++
+				return err, 1
+			} else {
+				log.Debug("connection error with host as expected ", req.Host)
+				return nil, 0
+			}
+		} else {
+			if req.ExpectedSuccess == false {
+				log.Errorln("connection success for unregistered domain ", req.Host)
+				w.Results.ConnectionErrors++
+				return errors.New("connection success for unregistered domain"), 1
+			}
+		}
+	}
+
 	err, duration = w.send(req.Request, response.Response, RequestTimeout)
 
 	if err == nil {
@@ -183,7 +214,7 @@ func (w *WorkerBase) send_request(req *request_generators.Request, response *req
 		log.Debugln(err.Error())
 	}
 	if response.Response.ConnectionClose() {
-		w.restart_connection(err)
+		w.restart_connection(err, string(req.Host))
 	}
 
 	return err, duration
@@ -192,7 +223,7 @@ func (w *WorkerBase) send_request(req *request_generators.Request, response *req
 func (w *WorkerBase) Init(lazy int) {
 	w.Results.Codes = make(map[int]uint64)
 	w.Results.Min = time.Duration(time.Second * 10)
-	w.open_connection()
+	w.open_connection(w.host)
 	w.ch_duration = make(chan time.Duration, 1)
 	w.ch_error = make(chan error, 1)
 	w.lazy_sleep = time.Duration(lazy) * time.Millisecond

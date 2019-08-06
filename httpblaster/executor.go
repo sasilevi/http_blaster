@@ -50,6 +50,7 @@ type executorResults struct {
 	ResponseHandlerResults interface{}
 	Counters               map[string]int64
 	ResponseErrors         error
+	ConnectionErrors       uint32
 }
 
 // Executor : executor is workload execution intity which responsible for workers, generators and response handlers
@@ -153,6 +154,9 @@ func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 	case request_generators.ONELINK:
 		reqGen = &request_generators.Onelink{}
 		chResponse = make(chan *request_generators.Response)
+		break
+	case request_generators.IMPERSONATE:
+		reqGen = &request_generators.Impersonate{}
 		break
 	default:
 		panic(fmt.Sprintf("unknown request generator %s", ex.Workload.Generator))
@@ -269,6 +273,7 @@ LOOP:
 		wresults := w.GetResults()
 		ex.results.ConRestarts += wresults.ConnectionRestarts
 		ex.results.ErrorsCount += wresults.ErrorCount
+		ex.results.ConnectionErrors += wresults.ConnectionErrors
 
 		ex.results.Total += wresults.Count
 		if w.GetResults().Min < ex.results.Min {
