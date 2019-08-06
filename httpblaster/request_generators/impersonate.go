@@ -106,7 +106,7 @@ LOOP:
 			request.Request.Header.Add("User-Agent", "http_blaster")
 			request.Request.SetRequestURI(ol.GetUri("", ol.workload.Args))
 			request.Host = host.Host
-			request.ExpectedSuccess = host.Success
+			request.ExpectedConnectionStatus = host.Success
 			request.ResetConnection = true
 
 			chReq <- request

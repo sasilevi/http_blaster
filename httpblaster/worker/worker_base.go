@@ -179,7 +179,7 @@ func (w *WorkerBase) send_request(req *request_generators.Request, response *req
 
 	if req.ResetConnection {
 		if w.restart_connection(errors.New(""), req.Host) != nil {
-			if req.ExpectedSuccess {
+			if req.ExpectedConnectionStatus {
 				log.Errorln("connection error with host", req.Host)
 				w.Results.ConnectionErrors++
 				return err, 1
@@ -188,7 +188,7 @@ func (w *WorkerBase) send_request(req *request_generators.Request, response *req
 				return nil, 0
 			}
 		} else {
-			if req.ExpectedSuccess == false {
+			if req.ExpectedConnectionStatus == false {
 				log.Errorln("connection success for unregistered domain ", req.Host)
 				w.Results.ConnectionErrors++
 				return errors.New("connection success for unregistered domain"), 1
