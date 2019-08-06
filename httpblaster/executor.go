@@ -55,31 +55,25 @@ type ExecutorResults struct {
 
 // Executor : executor is workload execution intity which responsible for workers, generators and response handlers
 type Executor struct {
-	connections int32
-	Workload    config.Workload
-	Globals     config.Global
-	//host                  string
-	//port                  string
-	//tlsMode              bool
-	Host  string
-	Hosts []string
-	//Port                  string
-	TLSMode      bool
-	results      ExecutorResults
-	workers      []worker.Worker
-	StartTime    time.Time
-	DataBfr      []byte
-	WorkerQd     int
-	TermUI       *tui.Term_ui
-	ChGetLatency chan time.Duration
-	ChPutLatency chan time.Duration
-	//Ch_statuses    chan int
+	connections      int32
+	Workload         config.Workload
+	Globals          config.Global
+	Host             string
+	Hosts            []string
+	TLSMode          bool
+	results          ExecutorResults
+	workers          []worker.Worker
+	StartTime        time.Time
+	DataBfr          []byte
+	WorkerQd         int
+	TermUI           *tui.Term_ui
+	ChGetLatency     chan time.Duration
+	ChPutLatency     chan time.Duration
 	CounterSubmitter *tui.Counter
 	CounterGenerated *tui.Counter
 	CounterAnalyzed  *tui.Counter
-
-	DumpFailures bool
-	DumpLocation string
+	DumpFailures     bool
+	DumpLocation     string
 }
 
 func (ex *Executor) loadResponseHandler(resp chan *request_generators.Response, wg *sync.WaitGroup) responsehandlers.IResponseHandler {
@@ -169,7 +163,7 @@ func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 	}
 	generatot := request_generators.BaseGenerator{}
 	chReq := generatot.Run(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated, reqGen)
-	// chReq := reqGen.GenerateRequests(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated)
+
 	return chReq, releaseReq, chResponse
 }
 
