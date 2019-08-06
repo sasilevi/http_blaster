@@ -182,14 +182,13 @@ func (w *Base) sendRequest(req *request_generators.Request, response *request_ge
 	if w.lazySleep > 0 {
 		time.Sleep(w.lazySleep)
 	}
-
 	if w.resetConnection {
-		log.Debugln("Restart Connection")
+		// log.Debugln("Restart Connection")
 		host := w.domain
 		if req.Host != "" {
 			host = req.Host
 		}
-		log.Debugln("host = ", host)
+		// log.Debugln("host = ", host)
 		if w.restartConnection(errors.New(""), host) != nil {
 			if req.ExpectedConnectionStatus {
 				log.Errorln("connection error with host", host)

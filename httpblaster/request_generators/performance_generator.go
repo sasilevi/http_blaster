@@ -26,7 +26,7 @@ func (p *PerformanceGenerator) UseCommon(c RequestCommon) {
 }
 
 // GenerateRequests : generate function
-func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, retCh chan *Response, worker_qd int) chan *Request {
+func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, retCh chan *Response, workerQD int) chan *Request {
 	p.workload = wl
 	p.Host = host
 	p.SetBaseUri(TLSMode, host, p.workload.Container, p.workload.Target)
@@ -53,7 +53,8 @@ func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.
 	req := AcquireRequest()
 	p.PrepareRequest(contentType, p.workload.Header, string(p.workload.Type),
 		p.base_uri, string(payload), host, req.Request)
-
+	req.Request.Header.Add("Host", p.Host)
+	req.Request.Header.Add("User-Agent", "http_blaster")
 	done := make(chan struct{})
 	go func() {
 		select {
@@ -62,92 +63,93 @@ func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.
 		}
 	}()
 
-	chReq := make(chan *Request, worker_qd)
+	chReq := make(chan *Request, workerQD)
 	go func() {
 		if p.workload.FileIndex == 0 && p.workload.FilesCount == 0 {
-			p.single_file_submitter(chReq, req.Request, done)
+			p.singleFileSubmitter(chReq, req.Request, done)
 		} else {
-			p.multi_file_submitter(chReq, req.Request, done)
+			p.multiFileSubmitter(chReq, req.Request, done)
 		}
 	}()
 	return chReq
 }
 
-func (p *PerformanceGenerator) clone_request(req *fasthttp.Request) *Request {
-	new_req := AcquireRequest()
-	req.Header.CopyTo(&new_req.Request.Header)
-	new_req.Request.AppendBody(req.Body())
-	return new_req
+func (p *PerformanceGenerator) cloneRequest(req *fasthttp.Request) *Request {
+	newReq := AcquireRequest()
+	req.Header.CopyTo(&newReq.Request.Header)
+	newReq.Request.AppendBody(req.Body())
+	return newReq
 }
 
-func (p *PerformanceGenerator) single_file_submitter(ch_req chan *Request, req *fasthttp.Request, done chan struct{}) {
-	var generated int = 0
+func (p *PerformanceGenerator) singleFileSubmitter(chReq chan *Request, req *fasthttp.Request, done chan struct{}) {
+	var generated = 0
 LOOP:
 	for {
 		select {
 		case <-done:
 			break LOOP
 		default:
-			request := p.clone_request(req)
+			request := p.cloneRequest(req)
 			request.Request.SetHost(p.Host)
+			request.Request.SetRequestURI(p.GetUri("", p.workload.Args))
 			if p.workload.Count == 0 {
-				ch_req <- request
-				generated += 1
+				chReq <- request
+				generated++
 			} else if generated < p.workload.Count {
-				ch_req <- request
-				generated += 1
+				chReq <- request
+				generated++
 			} else {
 				break LOOP
 			}
 		}
 	}
-	close(ch_req)
+	close(chReq)
 }
 
-func (p *PerformanceGenerator) gen_files_uri(file_index int, count int, random bool) chan string {
+func (p *PerformanceGenerator) genFilesURI(fileIndex int, count int, random bool) chan string {
 	ch := make(chan string, 1000)
 	go func() {
 		if random {
 			for {
 				n := rand.Intn(count)
-				ch <- fmt.Sprintf("%s_%d", p.base_uri, n+file_index)
+				ch <- fmt.Sprintf("%s_%d", p.base_uri, n+fileIndex)
 			}
 		} else {
-			file_pref := file_index
+			filePref := fileIndex
 			for {
-				if file_pref == file_index+count {
-					file_pref = file_index
+				if filePref == fileIndex+count {
+					filePref = fileIndex
 				}
-				ch <- fmt.Sprintf("%s_%d", p.base_uri, file_pref)
-				file_pref += 1
+				ch <- fmt.Sprintf("%s_%d", p.base_uri, filePref)
+				filePref++
 			}
 		}
 	}()
 	return ch
 }
 
-func (p *PerformanceGenerator) multi_file_submitter(ch_req chan *Request, req *fasthttp.Request, done chan struct{}) {
-	ch_uri := p.gen_files_uri(p.workload.FileIndex, p.workload.FilesCount, p.workload.Random)
-	var generated int = 0
+func (p *PerformanceGenerator) multiFileSubmitter(chReq chan *Request, req *fasthttp.Request, done chan struct{}) {
+	chURI := p.genFilesURI(p.workload.FileIndex, p.workload.FilesCount, p.workload.Random)
+	var generated = 0
 LOOP:
 	for {
 		select {
 		case <-done:
 			break LOOP
 		default:
-			uri := <-ch_uri
-			request := p.clone_request(req)
+			uri := <-chURI
+			request := p.cloneRequest(req)
 			request.Request.SetRequestURI(uri)
 			if p.workload.Count == 0 {
-				ch_req <- request
-				generated += 1
+				chReq <- request
+				generated++
 			} else if generated < p.workload.Count {
-				ch_req <- request
-				generated += 1
+				chReq <- request
+				generated++
 			} else {
 				break LOOP
 			}
 		}
 	}
-	close(ch_req)
+	close(chReq)
 }
