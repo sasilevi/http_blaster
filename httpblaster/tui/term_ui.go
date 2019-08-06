@@ -11,40 +11,40 @@ import (
 )
 
 type TermUI struct {
-	cfg                      *config.TomlConfig
-	widget_title             ui.GridBufferer
-	widget_sys_info          ui.GridBufferer
-	widget_server_info       ui.GridBufferer
-	widget_put_iops_chart    *ui.LineChart
-	widget_get_iops_chart    *ui.LineChart
-	widget_logs              *ui.List
-	widget_progress          ui.GridBufferer
-	widget_request_bar_chart *ui.BarChart
-	widget_put_latency       *ui.BarChart
-	widget_get_latency       *ui.BarChart
+	cfg                   *config.TomlConfig
+	widgetTitle           ui.GridBufferer
+	widgetSysInfo         ui.GridBufferer
+	widgetServerInfo      ui.GridBufferer
+	widgetPutIopsChart    *ui.LineChart
+	widgetGetIopsChart    *ui.LineChart
+	widgetLogs            *ui.List
+	widgetProgress        ui.GridBufferer
+	widgetRequestBarChart *ui.BarChart
+	widgetPutLatency      *ui.BarChart
+	widgetGetLatency      *ui.BarChart
 
-	iops_get_fifo *Float64Fifo
-	iops_put_fifo *Float64Fifo
-	logs_fifo     *StringsFifo
-	statuses      map[int]uint64
-	M             sync.RWMutex
-	ch_done       chan struct{}
+	iopsGetFifo *Float64Fifo
+	iopsPutFifo *Float64Fifo
+	logsFifo    *StringsFifo
+	statuses    map[int]uint64
+	M           sync.RWMutex
+	chDone      chan struct{}
 }
 
 type StringsFifo struct {
 	string
-	Length      int
-	Items       []string
-	ch_messages chan string
-	lock        sync.Mutex
+	Length     int
+	Items      []string
+	chMessages chan string
+	lock       sync.Mutex
 }
 
 func (t *StringsFifo) Init(length int) {
 	t.Length = length
 	t.Items = make([]string, length)
-	t.ch_messages = make(chan string, 100)
+	t.chMessages = make(chan string, 100)
 	go func() {
-		for msg := range t.ch_messages {
+		for msg := range t.chMessages {
 			func() {
 				t.lock.Lock()
 				defer t.lock.Unlock()
@@ -60,7 +60,7 @@ func (t *StringsFifo) Init(length int) {
 }
 
 func (t *StringsFifo) Insert(msg string) {
-	t.ch_messages <- msg
+	t.chMessages <- msg
 }
 func (t *StringsFifo) Get() []string {
 	t.lock.Lock()
@@ -107,7 +107,7 @@ func (t *TermUI) ui_set_title(x, y, w, h int) ui.GridBufferer {
 		// press q to quit
 		ui.StopLoop()
 		ui.Close()
-		close(t.ch_done)
+		close(t.chDone)
 	})
 	ui.Render(ui_titile_par)
 	return ui_titile_par
@@ -168,7 +168,7 @@ func (t *TermUI) ui_set_log_list(x, y, w, h int) *ui.List {
 	list.Width = w
 	list.Y = y
 	list.X = x
-	list.Items = t.logs_fifo.Get()
+	list.Items = t.logsFifo.Get()
 	return list
 }
 
@@ -234,7 +234,7 @@ func (t *TermUI) ui_get_iops(x, y, w, h int) *ui.LineChart {
 	lc2.Y = y
 	lc2.AxesColor = ui.ColorWhite
 	lc2.LineColor = ui.ColorCyan | ui.AttrBold
-	lc2.Data = t.iops_get_fifo.Get()
+	lc2.Data = t.iopsGetFifo.Get()
 	return lc2
 }
 
@@ -242,7 +242,7 @@ func (t *TermUI) ui_put_iops(x, y, w, h int) *ui.LineChart {
 	lc2 := ui.NewLineChart()
 	lc2.BorderLabel = "Put iops chart"
 	lc2.Mode = "braille"
-	lc2.Data = t.iops_put_fifo.Get()
+	lc2.Data = t.iopsPutFifo.Get()
 	lc2.Width = w
 	lc2.Height = h
 	lc2.X = x
@@ -261,34 +261,34 @@ func (t *TermUI) Update_requests(duration time.Duration, put_count, get_count ui
 	put_iops := put_count / seconds
 	get_iops := get_count / seconds
 	if put_iops > 0 {
-		t.iops_put_fifo.Insert(float64(put_iops) / 1000)
+		t.iopsPutFifo.Insert(float64(put_iops) / 1000)
 	}
 	if get_iops > 0 {
-		t.iops_get_fifo.Insert(float64(get_iops) / 1000)
+		t.iopsGetFifo.Insert(float64(get_iops) / 1000)
 	}
-	t.widget_put_iops_chart.Data = t.iops_put_fifo.Get()
-	t.widget_get_iops_chart.Data = t.iops_get_fifo.Get()
+	t.widgetPutIopsChart.Data = t.iopsPutFifo.Get()
+	t.widgetGetIopsChart.Data = t.iopsGetFifo.Get()
 
 }
 
 func (t *TermUI) Refresh_log() {
-	t.widget_logs.Items = t.logs_fifo.Get()
-	ui.Render(t.widget_logs)
+	t.widgetLogs.Items = t.logsFifo.Get()
+	ui.Render(t.widgetLogs)
 }
 
 func (t *TermUI) Update_status_codes(labels []string, values []int) {
-	t.widget_request_bar_chart.Data = values
-	t.widget_request_bar_chart.DataLabels = labels
+	t.widgetRequestBarChart.Data = values
+	t.widgetRequestBarChart.DataLabels = labels
 }
 
 func (t *TermUI) Update_put_latency_chart(labels []string, values []int) {
-	t.widget_put_latency.Data = values
-	t.widget_put_latency.DataLabels = labels
+	t.widgetPutLatency.Data = values
+	t.widgetPutLatency.DataLabels = labels
 }
 
 func (t *TermUI) Update_get_latency_chart(labels []string, values []int) {
-	t.widget_get_latency.Data = values
-	t.widget_get_latency.DataLabels = labels
+	t.widgetGetLatency.Data = values
+	t.widgetGetLatency.DataLabels = labels
 }
 
 func Percentage(value, total int) int {
@@ -297,13 +297,13 @@ func Percentage(value, total int) int {
 
 func (t *TermUI) InitTerminamlUI(cfg *config.TomlConfig) chan struct{} {
 	t.cfg = cfg
-	t.ch_done = make(chan struct{})
-	t.iops_get_fifo = &Float64Fifo{}
-	t.iops_get_fifo.Init(150)
-	t.iops_put_fifo = &Float64Fifo{}
-	t.iops_put_fifo.Init(150)
-	t.logs_fifo = &StringsFifo{}
-	t.logs_fifo.Init(10)
+	t.chDone = make(chan struct{})
+	t.iopsGetFifo = &Float64Fifo{}
+	t.iopsGetFifo.Init(150)
+	t.iopsPutFifo = &Float64Fifo{}
+	t.iopsPutFifo.Init(150)
+	t.logsFifo = &StringsFifo{}
+	t.logsFifo.Init(10)
 	t.statuses = make(map[int]uint64)
 	err := ui.Init()
 	if err != nil {
@@ -311,42 +311,42 @@ func (t *TermUI) InitTerminamlUI(cfg *config.TomlConfig) chan struct{} {
 	}
 	term_hight := ui.TermHeight()
 
-	t.widget_title = t.ui_set_title(0, 0, 50, Percentage(7, term_hight))
-	t.widget_server_info = t.ui_set_servers_info(0, 0, 0, 0)
-	t.widget_sys_info = t.ui_set_system_info(0, 0, 0, t.widget_server_info.GetHeight())
-	t.widget_put_iops_chart = t.ui_put_iops(0, 0, 0, Percentage(30, term_hight))
-	t.widget_get_iops_chart = t.ui_get_iops(0, 0, 0, Percentage(30, term_hight))
-	t.widget_put_latency = t.ui_set_put_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
-	t.widget_get_latency = t.ui_set_get_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
-	t.widget_request_bar_chart = t.ui_set_requests_bar_chart(0, 0, 0, Percentage(20, term_hight))
-	t.widget_logs = t.ui_set_log_list(0, 0, 0, Percentage(20, term_hight))
+	t.widgetTitle = t.ui_set_title(0, 0, 50, Percentage(7, term_hight))
+	t.widgetServerInfo = t.ui_set_servers_info(0, 0, 0, 0)
+	t.widgetSysInfo = t.ui_set_system_info(0, 0, 0, t.widgetServerInfo.GetHeight())
+	t.widgetPutIopsChart = t.ui_put_iops(0, 0, 0, Percentage(30, term_hight))
+	t.widgetGetIopsChart = t.ui_get_iops(0, 0, 0, Percentage(30, term_hight))
+	t.widgetPutLatency = t.ui_set_put_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
+	t.widgetGetLatency = t.ui_set_get_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
+	t.widgetRequestBarChart = t.ui_set_requests_bar_chart(0, 0, 0, Percentage(20, term_hight))
+	t.widgetLogs = t.ui_set_log_list(0, 0, 0, Percentage(20, term_hight))
 
 	ui.Body.AddRows(
 		ui.NewRow(
-			ui.NewCol(12, 0, t.widget_title),
+			ui.NewCol(12, 0, t.widgetTitle),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, t.widget_sys_info),
-			ui.NewCol(6, 0, t.widget_server_info),
+			ui.NewCol(6, 0, t.widgetSysInfo),
+			ui.NewCol(6, 0, t.widgetServerInfo),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, t.widget_put_iops_chart),
-			ui.NewCol(6, 0, t.widget_put_latency),
+			ui.NewCol(6, 0, t.widgetPutIopsChart),
+			ui.NewCol(6, 0, t.widgetPutLatency),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, t.widget_get_iops_chart),
-			ui.NewCol(6, 0, t.widget_get_latency),
+			ui.NewCol(6, 0, t.widgetGetIopsChart),
+			ui.NewCol(6, 0, t.widgetGetLatency),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, t.widget_logs),
-			ui.NewCol(6, 0, t.widget_request_bar_chart),
+			ui.NewCol(6, 0, t.widgetLogs),
+			ui.NewCol(6, 0, t.widgetRequestBarChart),
 		),
 	)
 
 	ui.Body.Align()
 	ui.Render(ui.Body)
 	go ui.Loop()
-	return t.ch_done
+	return t.chDone
 }
 
 func (t *TermUI) Render() {
@@ -362,10 +362,10 @@ func (t *TermUI) Write(p []byte) (n int, err error) {
 	if p == nil {
 		return 0, nil
 	}
-	t.logs_fifo.Insert(string(p))
-	if t.widget_logs != nil {
-		t.widget_logs.Items = t.logs_fifo.Get()
+	t.logsFifo.Insert(string(p))
+	if t.widgetLogs != nil {
+		t.widgetLogs.Items = t.logsFifo.Get()
 	}
-	ui.Render(t.widget_logs)
+	ui.Render(t.widgetLogs)
 	return len(p), nil
 }

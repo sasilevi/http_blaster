@@ -21,7 +21,7 @@ func TestLatencyHist_Get(t *testing.T) {
 
 	s, v := l.GetResults()
 	total := float64(0)
-	for i, _ := range s {
+	for i := range s {
 		total += v[i]
 		t.Logf("%6v(us)\t\t%3.2f%%", s[i], v[i])
 	}

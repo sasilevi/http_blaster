@@ -4,23 +4,26 @@ import (
 	"github.com/sasile/gohistogram"
 )
 
+// StatusesCollector obj
 type StatusesCollector struct {
 	WeighHist *gohistogram.NumericHistogram
-	ch_values chan int
+	chValues  chan int
 }
 
-func (self *StatusesCollector) New(n int, alpha float64) chan int {
-	self.WeighHist = gohistogram.NewHistogram(10)
-	self.ch_values = make(chan int, 400000)
+//New : return new status collector
+func (s *StatusesCollector) New(n int, alpha float64) chan int {
+	s.WeighHist = gohistogram.NewHistogram(10)
+	s.chValues = make(chan int, 400000)
 	go func() {
-		for v := range self.ch_values {
-			self.WeighHist.Add(float64(v))
+		for v := range s.chValues {
+			s.WeighHist.Add(float64(v))
 		}
 	}()
-	return self.ch_values
+	return s.chValues
 }
 
-func (self *StatusesCollector) Get() ([]string, []int) {
-	return self.WeighHist.BarArray()
+// Get : return hist from collector
+func (s *StatusesCollector) Get() ([]string, []int) {
+	return s.WeighHist.BarArray()
 
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/sasilevi/uasurfer"
 )
 
+// PostgresDB : postgres report
 type PostgresDB struct {
 	dbName   string
 	user     string
@@ -22,7 +23,7 @@ type PostgresDB struct {
 	bodyStmt *sql.Stmt
 }
 
-var TestTime = time.Now()
+var testTime = time.Now()
 
 /*
 add timestamp per test
@@ -133,7 +134,7 @@ func (p *PostgresDB) InsertUserAgentInfo(userAgent string, id uint32, target str
 	osPlatform := ua.OS.Platform.StringTrimPrefix()
 	osVersion := ua.OS.Version.String()
 
-	_, err := p.uaStmt.Exec(userAgent, id, wrongLink, notFound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, endpoint, TestTime)
+	_, err := p.uaStmt.Exec(userAgent, id, wrongLink, notFound, target, httpStatus, browserName, browserVersion, deviceType, osName, osPlatform, osVersion, expectedStoreLink, endpoint, testTime)
 	if err != nil {
 		fmt.Println(userAgent)
 		panic(err)

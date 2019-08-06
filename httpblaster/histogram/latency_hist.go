@@ -10,63 +10,63 @@ import (
 )
 
 type LatencyHist struct {
-	ch_values chan time.Duration
-	hist      map[int64]int
-	count     int64
-	size      int64
-	wg        sync.WaitGroup
+	chValues chan time.Duration
+	hist     map[int64]int
+	count    int64
+	size     int64
+	wg       sync.WaitGroup
 }
 
-func (self *LatencyHist) Add(v time.Duration) {
-	self.ch_values <- v
-	self.size++
+func (l *LatencyHist) Add(v time.Duration) {
+	l.chValues <- v
+	l.size++
 }
 
-func (self *LatencyHist) Close() {
-	close(self.ch_values)
+func (l *LatencyHist) Close() {
+	close(l.chValues)
 }
 
-func (self *LatencyHist) place(v int64) {
-	self.hist[v/100]++
+func (l *LatencyHist) place(v int64) {
+	l.hist[v/100]++
 }
 
-func (self *LatencyHist) New() chan time.Duration {
-	self.hist = make(map[int64]int)
-	self.wg.Add(1)
+func (l *LatencyHist) New() chan time.Duration {
+	l.hist = make(map[int64]int)
+	l.wg.Add(1)
 
-	self.ch_values = make(chan time.Duration, 10000)
+	l.chValues = make(chan time.Duration, 10000)
 
 	go func() {
-		defer self.wg.Done()
-		for v := range self.ch_values {
-			self.count++
-			self.place(v.Nanoseconds() / 1000)
+		defer l.wg.Done()
+		for v := range l.chValues {
+			l.count++
+			l.place(v.Nanoseconds() / 1000)
 		}
 	}()
-	return self.ch_values
+	return l.chValues
 }
 
-func (self *LatencyHist) GetResults() ([]string, []float64) {
+func (l *LatencyHist) GetResults() ([]string, []float64) {
 	log.Debugln("get latency hist")
-	self.wg.Wait()
+	l.wg.Wait()
 	var keys []int
-	for k := range self.hist {
+	for k := range l.hist {
 		keys = append(keys, int(k))
 	}
 	sort.Ints(keys)
-	res_strings := []string{}
-	res_values := []float64{}
+	resStrings := []string{}
+	resValues := []float64{}
 	for _, k := range keys {
-		v := self.hist[int64(k)]
-		res_strings = append(res_strings, fmt.Sprintf("%5d - %5d",
+		v := l.hist[int64(k)]
+		resStrings = append(resStrings, fmt.Sprintf("%5d - %5d",
 			k*100, (k+1)*100))
-		value := float64(v*100) / float64(self.count)
-		res_values = append(res_values, value)
+		value := float64(v*100) / float64(l.count)
+		resValues = append(resValues, value)
 	}
-	return res_strings, res_values
+	return resStrings, resValues
 }
 
-func (self *LatencyHist) GetHistMap() map[int64]int {
-	self.wg.Wait()
-	return self.hist
+func (l *LatencyHist) GetHistMap() map[int64]int {
+	l.wg.Wait()
+	return l.hist
 }
