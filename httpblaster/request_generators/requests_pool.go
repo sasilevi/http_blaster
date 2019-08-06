@@ -12,7 +12,6 @@ type Request struct {
 	ID                       int
 	Request                  *fasthttp.Request
 	Host                     string
-	ResetConnection          bool //reset the connection before request
 	ExpectedConnectionStatus bool
 }
 

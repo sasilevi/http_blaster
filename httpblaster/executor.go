@@ -203,9 +203,10 @@ func (ex *Executor) run(wg *sync.WaitGroup) error {
 
 		server := fmt.Sprintf("%s:%s", hostAddress, ex.Globals.Port)
 		w := worker.NewWorker(ex.GetWorkerType(),
-			server, ex.Globals.TLSMode, ex.Workload.Lazy,
+			server, hostAddress, ex.Globals.TLSMode, ex.Workload.Lazy,
 			ex.Globals.RetryOnStatusCodes,
-			ex.Globals.RetryCount, ex.Globals.PemFile, i, ex.Workload.Name)
+			ex.Globals.RetryCount, ex.Globals.PemFile, i, ex.Workload.Name,
+			ex.Workload.ResetConnectionOnSend)
 		ex.workers = append(ex.workers, w)
 		//var ch_latency chan time.Duration
 		//if ex.Workload.Type == "GET" {

@@ -56,7 +56,7 @@ func (self *StreamGetGenerator) generate(ch_req chan *Request, payload string, h
 	for f := range ch_files {
 		if file, err := os.Open(f); err == nil {
 			reader := bufio.NewReader(file)
-			var i int = 0
+			var i int
 			for {
 				line, err := reader.ReadString('\n')
 				if err == nil {

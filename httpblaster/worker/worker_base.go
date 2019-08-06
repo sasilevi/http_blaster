@@ -31,23 +31,25 @@ var doOnce sync.Once
 
 // Base : worker abs
 type Base struct {
-	host           string
-	conn           net.Conn
-	Results        Results
-	isTLSClient    bool
-	pemFile        string
-	br             *bufio.Reader
-	bw             *bufio.Writer
-	chDuration     chan time.Duration
-	chError        chan error
-	lazySleep      time.Duration
-	retryCodes     map[int]interface{}
-	retryCount     int
-	timer          *time.Timer
-	id             int
-	hist           *histogram.LatencyHist
-	executorName   string
-	countSubmitted *tui.Counter
+	host            string
+	domain          string
+	conn            net.Conn
+	Results         Results
+	isTLSClient     bool
+	pemFile         string
+	br              *bufio.Reader
+	bw              *bufio.Writer
+	chDuration      chan time.Duration
+	chError         chan error
+	lazySleep       time.Duration
+	retryCodes      map[int]interface{}
+	retryCount      int
+	timer           *time.Timer
+	id              int
+	hist            *histogram.LatencyHist
+	executorName    string
+	countSubmitted  *tui.Counter
+	resetConnection bool
 }
 
 func (w *Base) openConnection(host string) error {
@@ -180,23 +182,29 @@ func (w *Base) sendRequest(req *request_generators.Request, response *request_ge
 	if w.lazySleep > 0 {
 		time.Sleep(w.lazySleep)
 	}
-	if req.ResetConnection {
-		if w.restartConnection(errors.New(""), req.Host) != nil {
+	if w.resetConnection {
+		log.Debugln("Restart Connection")
+		host := w.host
+		if req.Host != "" {
+			host = req.Host
+		}
+		log.Debugln("host = ", host)
+		if w.restartConnection(errors.New(""), host) != nil {
 			if req.ExpectedConnectionStatus {
-				log.Errorln("connection error with host", req.Host)
+				log.Errorln("connection error with host", host)
 				w.Results.ConnectionErrors++
 				return 1, err
 			}
-			log.Debug("connection error with host as expected ", req.Host)
+			log.Debug("connection error with host as expected ", host)
 			return 0, nil
 		}
 		if req.ExpectedConnectionStatus == false {
-			log.Errorln("connection success for unregistered domain ", req.Host)
+			log.Errorln("connection success for unregistered domain ", host)
 			w.Results.ConnectionErrors++
 			return 1, errors.New("connection success for unregistered domain")
 		}
 	}
-
+	log.Debugln("Send request")
 	duration, err = w.send(req.Request, response.Response, RequestTimeout)
 
 	if err == nil {
@@ -225,7 +233,10 @@ func (w *Base) sendRequest(req *request_generators.Request, response *request_ge
 func (w *Base) Init(lazy int) {
 	w.Results.Codes = make(map[int]uint64)
 	w.Results.Min = time.Duration(time.Second * 10)
-	w.openConnection(w.host)
+	err := w.openConnection(w.domain)
+	if err != nil {
+		panic(w.domain)
+	}
 	w.chDuration = make(chan time.Duration, 1)
 	w.chError = make(chan error, 1)
 	w.lazySleep = time.Duration(lazy) * time.Millisecond
@@ -245,13 +256,15 @@ func (w *Base) GetHist() map[int64]int {
 //NewWorker : new worker object
 func NewWorker(workerType Type,
 	host string,
+	domian string,
 	tlsClient bool,
 	lazy int,
 	retryCodes []int,
 	retryCount int,
 	pemFile string,
 	id int,
-	executorName string) Worker {
+	executorName string,
+	resetConnection bool) Worker {
 	if host == "" {
 		return nil
 	}
@@ -267,11 +280,11 @@ func NewWorker(workerType Type,
 	hist := &histogram.LatencyHist{}
 	hist.New()
 	if workerType == Performance {
-		worker = &PerfWorker{Base{host: host, isTLSClient: tlsClient, retryCodes: retryCodesMap,
-			retryCount: retryCount, pemFile: pemFile, id: id, hist: hist, executorName: executorName}}
+		worker = &PerfWorker{Base{host: host, domain: domian, isTLSClient: tlsClient, retryCodes: retryCodesMap,
+			retryCount: retryCount, pemFile: pemFile, id: id, hist: hist, executorName: executorName, resetConnection: resetConnection}}
 	} else {
-		worker = &IngestWorker{Base{host: host, isTLSClient: tlsClient, retryCodes: retryCodesMap,
-			retryCount: retryCount, pemFile: pemFile, id: id, hist: hist, executorName: executorName}}
+		worker = &IngestWorker{Base{host: host, domain: domian, isTLSClient: tlsClient, retryCodes: retryCodesMap,
+			retryCount: retryCount, pemFile: pemFile, id: id, hist: hist, executorName: executorName, resetConnection: resetConnection}}
 	}
 	worker.Init(lazy)
 	return worker

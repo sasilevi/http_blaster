@@ -107,7 +107,6 @@ LOOP:
 			request.Request.SetRequestURI(ol.GetUri("", ol.workload.Args))
 			request.Host = host.Host
 			request.ExpectedConnectionStatus = host.Success
-			request.ResetConnection = true
 
 			chReq <- request
 
