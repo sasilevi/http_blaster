@@ -2,7 +2,8 @@ package worker
 
 import "time"
 
-type worker_results struct {
+// Results : worker results for execution
+type Results struct {
 	Count              uint64
 	Min                time.Duration
 	Max                time.Duration

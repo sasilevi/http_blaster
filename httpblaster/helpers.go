@@ -1,5 +1,4 @@
-/*
-Copyright 2016 Iguazio.io Systems Ltd.
+/*Package httpblaster Copyright 2016 Iguazio.io Systems Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License") with
 an addition restriction as set forth herein. You may not use this
@@ -23,9 +22,9 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func clone_request(req *fasthttp.Request) *fasthttp.Request {
-	new_req := new(fasthttp.Request)
-	req.Header.CopyTo(&new_req.Header)
-	new_req.AppendBody(req.Body())
-	return new_req
+func cloneRequest(req *fasthttp.Request) *fasthttp.Request {
+	newReq := new(fasthttp.Request)
+	req.Header.CopyTo(&newReq.Header)
+	newReq.AppendBody(req.Body())
+	return newReq
 }

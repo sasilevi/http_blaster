@@ -1,8 +1,11 @@
 package worker
 
-type WorkerType int32
+//Type : worker type enum
+type Type int32
 
 const (
-	PERFORMANCE_WORKER WorkerType = iota
-	INGESTION_WORKER   WorkerType = iota
+	// Performance : worker for performance load testing
+	Performance Type = iota
+	// Ingestion : worker for data ingestion testing
+	Ingestion
 )

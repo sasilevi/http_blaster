@@ -2,16 +2,19 @@ package httpblaster
 
 import (
 	"encoding/csv"
-	"github.com/v3io/http_blaster/httpblaster/igz_data"
 	"io"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/v3io/http_blaster/httpblaster/igz_data"
+
 	//"go/parser"
 	"strings"
 
 	"encoding/json"
 	"fmt"
+
 	"github.com/v3io/v3io-tsdb/pkg/utils"
 )
 
@@ -62,7 +65,7 @@ func Test_tsdb_Schema_Parser(t *testing.T) {
 	defer f.Close()
 	r := csv.NewReader(f)
 	r.Comma = p.JsonSchema.Settings.Separator.Rune
-	var line_count = 0
+	var lineCount = 0
 	for {
 		record, err := r.Read()
 		if err != nil {
@@ -77,9 +80,9 @@ func Test_tsdb_Schema_Parser(t *testing.T) {
 		} else {
 			j := p.TSDBFromCSVRecord(record)
 			log.Println(j)
-			line_count++
-			if line_count%1024 == 0 {
-				log.Printf("line: %d from file %s was submitted", line_count, f)
+			lineCount++
+			if lineCount%1024 == 0 {
+				log.Printf("line: %d from file %s was submitted", lineCount, f)
 			}
 		}
 	}

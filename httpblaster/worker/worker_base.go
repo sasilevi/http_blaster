@@ -21,40 +21,44 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//DialTimeout : connection timeout
 const DialTimeout = 600 * time.Second
+
+//RequestTimeout : send timeout
 const RequestTimeout = 600 * time.Second
 
-var do_once sync.Once
+var doOnce sync.Once
 
-type WorkerBase struct {
+// Base : worker abs
+type Base struct {
 	host           string
 	conn           net.Conn
-	Results        worker_results
-	is_tls_client  bool
-	pem_file       string
+	Results        Results
+	isTLSClient    bool
+	pemFile        string
 	br             *bufio.Reader
 	bw             *bufio.Writer
-	ch_duration    chan time.Duration
-	ch_error       chan error
-	lazy_sleep     time.Duration
-	retry_codes    map[int]interface{}
-	retry_count    int
+	chDuration     chan time.Duration
+	chError        chan error
+	lazySleep      time.Duration
+	retryCodes     map[int]interface{}
+	retryCount     int
 	timer          *time.Timer
 	id             int
 	hist           *histogram.LatencyHist
-	executor_name  string
+	executorName   string
 	countSubmitted *tui.Counter
 }
 
-func (w *WorkerBase) open_connection(host string) error {
+func (w *Base) openConnection(host string) error {
 	log.Debug("open connection")
 	conn, err := fasthttp.DialTimeout(w.host, DialTimeout)
 	if err != nil {
 		panic(err)
 		// log.Printf("open connection error: %s\n", err)
 	}
-	if w.is_tls_client {
-		w.conn, err = w.open_secure_connection(conn, host)
+	if w.isTLSClient {
+		w.conn, err = w.openSecureConnection(conn, host)
 		if err != nil {
 			return err
 		}
@@ -69,26 +73,26 @@ func (w *WorkerBase) open_connection(host string) error {
 	return nil
 }
 
-func (w *WorkerBase) open_secure_connection(conn net.Conn, host string) (*tls.Conn, error) {
+func (w *Base) openSecureConnection(conn net.Conn, host string) (*tls.Conn, error) {
 	log.Debug("open secure connection")
 	var conf *tls.Config
-	if w.pem_file != "" {
-		var pem_data []byte
-		fp, err := os.Open(w.pem_file)
+	if w.pemFile != "" {
+		var pemData []byte
+		fp, err := os.Open(w.pemFile)
 		if err != nil {
 			panic(err)
 		} else {
 			defer fp.Close()
-			pem_data, err = ioutil.ReadAll(fp)
+			pemData, err = ioutil.ReadAll(fp)
 			if err != nil {
 				panic(err)
 			}
 		}
-		block, _ := pem.Decode([]byte(pem_data))
+		block, _ := pem.Decode([]byte(pemData))
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			panic(err)
-			log.Fatal(err)
+			// log.Fatal(err)
 		}
 		clientCertPool := x509.NewCertPool()
 		clientCertPool.AddCert(cert)
@@ -112,91 +116,88 @@ func (w *WorkerBase) open_secure_connection(conn net.Conn, host string) (*tls.Co
 	return c, c.Handshake()
 }
 
-func (w *WorkerBase) close_connection() {
+func (w *Base) closeConnection() {
 	if w.conn != nil {
 		w.conn.Close()
 	}
 }
 
-func (w *WorkerBase) restart_connection(err error, host string) error {
+func (w *Base) restartConnection(err error, host string) error {
 	log.Debugln("restart connection with ", host)
-	w.close_connection()
-	oerr := w.open_connection(host)
+	w.closeConnection()
+	oerr := w.openConnection(host)
 	w.Results.ConnectionRestarts++
 	return oerr
 }
 
-func (w *WorkerBase) send(req *fasthttp.Request, resp *fasthttp.Response,
-	timeout time.Duration) (error, time.Duration) {
+func (w *Base) send(req *fasthttp.Request, resp *fasthttp.Response,
+	timeout time.Duration) (time.Duration, error) {
 	var err error
 	go func() {
 		start := time.Now()
 		if err = req.Write(w.bw); err != nil {
 			log.Debugf("send write error: %s\n", err)
 			log.Debugln(fmt.Sprintf("%+v", req))
-			w.ch_error <- err
+			w.chError <- err
 			return
 		} else if err = w.bw.Flush(); err != nil {
 			log.Debugf("send flush error: %s\n", err)
-			w.ch_error <- err
+			w.chError <- err
 			return
 		} else if err = resp.Read(w.br); err != nil {
 			log.Debugf("send read error: %s\n", err)
-			w.ch_error <- err
+			w.chError <- err
 			return
 		}
 		end := time.Now()
-		w.ch_duration <- end.Sub(start)
+		w.chDuration <- end.Sub(start)
 	}()
 	w.countSubmitted.Add(1)
 	w.timer.Reset(timeout)
 	select {
-	case duration := <-w.ch_duration:
+	case duration := <-w.chDuration:
 		w.hist.Add(duration)
-		return nil, duration
-	case err := <-w.ch_error:
+		return duration, nil
+	case err := <-w.chError:
 		log.Debugf("request completed with error:%s", err.Error())
 		if strings.Contains(err.Error(), "does not look like a TLS handshake") {
 			panic(err.Error())
 		}
-		return err, timeout
+		return timeout, err
 	case <-w.timer.C:
 		log.Printf("Error: request didn't complete on timeout url:%s", req.URI().String())
-		return errors.New(fmt.Sprintf("request timedout url:%s", req.URI().String())), timeout
+		return timeout, fmt.Errorf("request timedout url:%s", req.URI().String())
 	}
-	return nil, timeout
+	// return timeout, nil
 }
 
-func (w *WorkerBase) send_request(req *request_generators.Request, response *request_generators.Response) (error, time.Duration) {
+func (w *Base) sendRequest(req *request_generators.Request, response *request_generators.Response) (time.Duration, error) {
 	var (
 		code     int
 		err      error
 		duration time.Duration
 	)
-	if w.lazy_sleep > 0 {
-		time.Sleep(w.lazy_sleep)
+	if w.lazySleep > 0 {
+		time.Sleep(w.lazySleep)
 	}
-
 	if req.ResetConnection {
-		if w.restart_connection(errors.New(""), req.Host) != nil {
+		if w.restartConnection(errors.New(""), req.Host) != nil {
 			if req.ExpectedConnectionStatus {
 				log.Errorln("connection error with host", req.Host)
 				w.Results.ConnectionErrors++
-				return err, 1
-			} else {
-				log.Debug("connection error with host as expected ", req.Host)
-				return nil, 0
+				return 1, err
 			}
-		} else {
-			if req.ExpectedConnectionStatus == false {
-				log.Errorln("connection success for unregistered domain ", req.Host)
-				w.Results.ConnectionErrors++
-				return errors.New("connection success for unregistered domain"), 1
-			}
+			log.Debug("connection error with host as expected ", req.Host)
+			return 0, nil
+		}
+		if req.ExpectedConnectionStatus == false {
+			log.Errorln("connection success for unregistered domain ", req.Host)
+			w.Results.ConnectionErrors++
+			return 1, errors.New("connection success for unregistered domain")
 		}
 	}
 
-	err, duration = w.send(req.Request, response.Response, RequestTimeout)
+	duration, err = w.send(req.Request, response.Response, RequestTimeout)
 
 	if err == nil {
 		code = response.Response.StatusCode()
@@ -214,53 +215,63 @@ func (w *WorkerBase) send_request(req *request_generators.Request, response *req
 		log.Debugln(err.Error())
 	}
 	if response.Response.ConnectionClose() {
-		w.restart_connection(err, string(req.Host))
+		w.restartConnection(err, string(req.Host))
 	}
 
-	return err, duration
+	return duration, err
 }
 
-func (w *WorkerBase) Init(lazy int) {
+// Init : init worker vars
+func (w *Base) Init(lazy int) {
 	w.Results.Codes = make(map[int]uint64)
 	w.Results.Min = time.Duration(time.Second * 10)
-	w.open_connection(w.host)
-	w.ch_duration = make(chan time.Duration, 1)
-	w.ch_error = make(chan error, 1)
-	w.lazy_sleep = time.Duration(lazy) * time.Millisecond
+	w.openConnection(w.host)
+	w.chDuration = make(chan time.Duration, 1)
+	w.chError = make(chan error, 1)
+	w.lazySleep = time.Duration(lazy) * time.Millisecond
 	w.timer = time.NewTimer(time.Second * 120)
 }
 
-func (w *WorkerBase) GetResults() worker_results {
+// GetResults : return worker results struct
+func (w *Base) GetResults() Results {
 	return w.Results
 }
 
-func (w *WorkerBase) GetHist() map[int64]int {
+// GetHist : return worker latency hist
+func (w *Base) GetHist() map[int64]int {
 	return w.hist.GetHistMap()
 }
 
-func NewWorker(worker_type WorkerType, host string,
-	tls_client bool, lazy int, retry_codes []int,
-	retry_count int, pem_file string, id int, executor_name string) Worker {
+//NewWorker : new worker object
+func NewWorker(workerType Type,
+	host string,
+	tlsClient bool,
+	lazy int,
+	retryCodes []int,
+	retryCount int,
+	pemFile string,
+	id int,
+	executorName string) Worker {
 	if host == "" {
 		return nil
 	}
-	retry_codes_map := make(map[int]interface{})
-	for _, c := range retry_codes {
-		retry_codes_map[c] = true
+	retryCodesMap := make(map[int]interface{})
+	for _, c := range retryCodes {
+		retryCodesMap[c] = true
 
 	}
-	if retry_count == 0 {
-		retry_count = 1
+	if retryCount == 0 {
+		retryCount = 1
 	}
 	var worker Worker
 	hist := &histogram.LatencyHist{}
 	hist.New()
-	if worker_type == PERFORMANCE_WORKER {
-		worker = &PerfWorker{WorkerBase{host: host, is_tls_client: tls_client, retry_codes: retry_codes_map,
-			retry_count: retry_count, pem_file: pem_file, id: id, hist: hist, executor_name: executor_name}}
+	if workerType == Performance {
+		worker = &PerfWorker{Base{host: host, isTLSClient: tlsClient, retryCodes: retryCodesMap,
+			retryCount: retryCount, pemFile: pemFile, id: id, hist: hist, executorName: executorName}}
 	} else {
-		worker = &IngestWorker{WorkerBase{host: host, is_tls_client: tls_client, retry_codes: retry_codes_map,
-			retry_count: retry_count, pem_file: pem_file, id: id, hist: hist, executor_name: executor_name}}
+		worker = &IngestWorker{Base{host: host, isTLSClient: tlsClient, retryCodes: retryCodesMap,
+			retryCount: retryCount, pemFile: pemFile, id: id, hist: hist, executorName: executorName}}
 	}
 	worker.Init(lazy)
 	return worker

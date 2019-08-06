@@ -1,5 +1,4 @@
-/*
-Copyright 2016 Iguazio.io Systems Ltd.
+/*Package httpblaster Copyright 2016 Iguazio.io Systems Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License") with
 an addition restriction as set forth herein. You may not use this
@@ -35,7 +34,8 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/worker"
 )
 
-type executorResults struct {
+// ExecutorResults : executor results
+type ExecutorResults struct {
 	Total                  uint64
 	Duration               time.Duration
 	Min                    time.Duration
@@ -65,7 +65,7 @@ type Executor struct {
 	Hosts []string
 	//Port                  string
 	TLSMode      bool
-	results      executorResults
+	results      ExecutorResults
 	workers      []worker.Worker
 	StartTime    time.Time
 	DataBfr      []byte
@@ -104,7 +104,7 @@ func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 	bool, chan *request_generators.Response) {
 	var reqGen request_generators.Generator
 	var releaseReq = true
-	var chResponse chan *request_generators.Response = nil
+	var chResponse chan *request_generators.Response
 
 	genType := strings.ToLower(ex.Workload.Generator)
 	switch genType {
@@ -168,19 +168,21 @@ func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 		host = ex.Host
 	}
 	generatot := request_generators.BaseGenerator{}
-	ch_req := generatot.Run(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated, reqGen)
-	// ch_req := reqGen.GenerateRequests(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated)
-	return ch_req, releaseReq, chResponse
+	chReq := generatot.Run(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated, reqGen)
+	// chReq := reqGen.GenerateRequests(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated)
+	return chReq, releaseReq, chResponse
 }
 
-func (ex *Executor) GetWorkerType() worker.WorkerType {
+// GetWorkerType : worker type from workload
+func (ex *Executor) GetWorkerType() worker.Type {
 	genType := strings.ToLower(ex.Workload.Generator)
 	if genType == request_generators.PERFORMANCE {
-		return worker.PERFORMANCE_WORKER
+		return worker.Performance
 	}
-	return worker.INGESTION_WORKER
+	return worker.Ingestion
 }
 
+// GetType : worker type
 func (ex *Executor) GetType() string {
 	return ex.Workload.Type
 }
@@ -188,24 +190,24 @@ func (ex *Executor) GetType() string {
 func (ex *Executor) run(wg *sync.WaitGroup) error {
 	defer wg.Done()
 	ex.StartTime = time.Now()
-	workers_wg := sync.WaitGroup{}
+	workersWg := sync.WaitGroup{}
 	rhWg := sync.WaitGroup{}
-	workers_wg.Add(ex.Workload.Workers)
+	workersWg.Add(ex.Workload.Workers)
 
-	ch_req, releaseReq_flag, chResponse := ex.loadRequestGenerator()
+	chReq, releaseReqFlag, chResponse := ex.loadRequestGenerator()
 	rhWg.Add(1)
 	rh := ex.loadResponseHandler(chResponse, &rhWg)
 
 	for i := 0; i < ex.Workload.Workers; i++ {
-		var host_address string
+		var hostAddress string
 		if len(ex.Hosts) > 0 {
-			server_id := (i) % len(ex.Hosts)
-			host_address = ex.Hosts[server_id]
+			serverID := (i) % len(ex.Hosts)
+			hostAddress = ex.Hosts[serverID]
 		} else {
-			host_address = ex.Host
+			hostAddress = ex.Host
 		}
 
-		server := fmt.Sprintf("%s:%s", host_address, ex.Globals.Port)
+		server := fmt.Sprintf("%s:%s", hostAddress, ex.Globals.Port)
 		w := worker.NewWorker(ex.GetWorkerType(),
 			server, ex.Globals.TLSMode, ex.Workload.Lazy,
 			ex.Globals.RetryOnStatusCodes,
@@ -217,8 +219,8 @@ func (ex *Executor) run(wg *sync.WaitGroup) error {
 		//} else {
 		//	ch_latency = ex.ChPutLatency
 		//}
-		go w.RunWorker(chResponse, ch_req,
-			&workers_wg, releaseReq_flag, // ch_latency,
+		go w.RunWorker(chResponse, chReq,
+			&workersWg, releaseReqFlag, // ch_latency,
 			ex.CounterSubmitter,
 			//ex.Ch_statuses,
 			ex.DumpFailures,
@@ -226,7 +228,7 @@ func (ex *Executor) run(wg *sync.WaitGroup) error {
 	}
 	ended := make(chan bool)
 	go func() {
-		workers_wg.Wait()
+		workersWg.Wait()
 		close(ended)
 	}()
 	tick := time.Tick(time.Millisecond * 500)
@@ -237,17 +239,17 @@ LOOP:
 			break LOOP
 		case <-tick:
 			if ex.TermUI != nil {
-				var put_req_count uint64 = 0
-				var get_req_count uint64 = 0
+				var putReqCount uint64
+				var getReqCount uint64
 				for _, w := range ex.workers {
 					wresults := w.GetResults()
 					if w.GetResults().Method == `PUT` {
-						put_req_count += wresults.Count
+						putReqCount += wresults.Count
 					} else {
-						get_req_count += wresults.Count
+						getReqCount += wresults.Count
 					}
 				}
-				ex.TermUI.Update_requests(time.Now().Sub(ex.StartTime), put_req_count, get_req_count)
+				ex.TermUI.Update_requests(time.Now().Sub(ex.StartTime), putReqCount, getReqCount)
 			}
 		}
 	}
@@ -301,6 +303,7 @@ LOOP:
 	return nil
 }
 
+// Start : start executor
 func (ex *Executor) Start(wg *sync.WaitGroup) error {
 	ex.results.Statuses = make(map[int]uint64)
 	log.Info("at executor start ", ex.Workload)
@@ -310,11 +313,13 @@ func (ex *Executor) Start(wg *sync.WaitGroup) error {
 	return nil
 }
 
+// Stop :  stop executor
 func (ex *Executor) Stop() error {
-	return errors.New("Not Implimented!!!")
+	return errors.New("not implimented")
 }
 
-func (ex *Executor) Report() (executorResults, error) {
+// Report : executor report
+func (ex *Executor) Report() (ExecutorResults, error) {
 	log.Info("report for wl ", ex.Workload.ID, ":")
 	log.Info("Total Requests ", ex.results.Total)
 	log.Info("Min: ", ex.results.Min)
@@ -328,21 +333,19 @@ func (ex *Executor) Report() (executorResults, error) {
 	}
 
 	log.Info("iops: ", ex.results.Iops)
-	for err_code, err_count := range ex.results.Statuses {
-		if max_errors, ok := ex.Globals.StatusCodesAcceptance[strconv.Itoa(err_code)]; ok {
-			if ex.results.Total > 0 && err_count > 0 {
-				err_percent := (float64(err_count) * float64(100)) / float64(ex.results.Total)
+	for errCode, errCount := range ex.results.Statuses {
+		if maxErrors, ok := ex.Globals.StatusCodesAcceptance[strconv.Itoa(errCode)]; ok {
+			if ex.results.Total > 0 && errCount > 0 {
+				errPercent := (float64(errCount) * float64(100)) / float64(ex.results.Total)
 				log.Infof("status code %d occured %f%% during the test \"%s\"",
-					err_code, err_percent, ex.Workload.Name)
-				if float64(err_percent) > float64(max_errors) {
-					return ex.results,
-						errors.New(fmt.Sprintf("Executor %s completed with errors: %+v",
-							ex.Workload.Name, ex.results.Statuses))
+					errCode, errPercent, ex.Workload.Name)
+				if float64(errPercent) > float64(maxErrors) {
+					return ex.results, fmt.Errorf("Executor %s completed with errors: %+v",
+						ex.Workload.Name, ex.results.Statuses)
 				}
 			}
 		} else {
-			return ex.results, errors.New(fmt.Sprintf("Executor %s completed with errors: %+v",
-				ex.Workload.Name, ex.results.Statuses))
+			return ex.results, fmt.Errorf("Executor %s completed with errors: %+v", ex.Workload.Name, ex.results.Statuses)
 		}
 	}
 	if ex.results.ErrorsCount > 0 {
@@ -351,6 +354,7 @@ func (ex *Executor) Report() (executorResults, error) {
 	return ex.results, nil
 }
 
+// LatencyHist : get executor latency hist
 func (ex *Executor) LatencyHist() map[int64]int {
 	res := make(map[int64]int)
 	for _, w := range ex.workers {

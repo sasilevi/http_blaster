@@ -29,36 +29,39 @@ import (
 	//"time"
 )
 
+//PerfWorker : worker focused on performance
 type PerfWorker struct {
-	WorkerBase
+	Base
 }
 
-func (w *PerfWorker) UseBase(c WorkerBase) {
+//UseBase : for to use abs
+func (w *PerfWorker) UseBase(c Base) {
 
 }
 
-func (w *PerfWorker) RunWorker(ch_resp chan *request_generators.Response,
-	ch_req chan *request_generators.Request,
-	wg *sync.WaitGroup, release_req bool,
+// RunWorker :  worker run method
+func (w *PerfWorker) RunWorker(chResp chan *request_generators.Response,
+	chReq chan *request_generators.Request,
+	wg *sync.WaitGroup, releaseReq bool,
 	countSubmitted *tui.Counter,
 	//ch_latency chan time.Duration,
 	//ch_statuses chan int,
-	dump_requests bool,
-	dump_location string) {
+	dumpRequests bool,
+	dumpLocation string) {
 	defer wg.Done()
-	var req_type sync.Once
+	var reqType sync.Once
 	w.countSubmitted = countSubmitted
-	do_once.Do(func() {
+	doOnce.Do(func() {
 		log.Info("Running Performance workers")
 	})
 
 	response := request_generators.AcquireResponse()
 	defer request_generators.ReleaseResponse(response)
-	for req := range ch_req {
-		req_type.Do(func() {
+	for req := range chReq {
+		reqType.Do(func() {
 			w.Results.Method = string(req.Request.Header.Method())
 		})
-		err, _ := w.send_request(req, response)
+		_, err := w.sendRequest(req, response)
 
 		if err != nil {
 			log.Errorf("send request failed %s", err.Error())
@@ -71,5 +74,5 @@ func (w *PerfWorker) RunWorker(ch_resp chan *request_generators.Response,
 	}
 	log.Debugln("closing hist")
 	w.hist.Close()
-	w.close_connection()
+	w.closeConnection()
 }

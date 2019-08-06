@@ -37,37 +37,40 @@ import (
 )
 
 var once sync.Once
-var dump_dir string
+var dumpDir string
 
+// IngestWorker : worker that will be used for ingest data with less performance
 type IngestWorker struct {
-	WorkerBase
+	Base
 }
 
-func (w *IngestWorker) UseBase(c WorkerBase) {
+// UseBase : force to use abs
+func (w *IngestWorker) UseBase(c Base) {
 
 }
+
 func (w *IngestWorker) dumpRequests(chDump chan *fasthttp.Request, dumpLocation string,
 	syncDump *sync.WaitGroup) {
 
 	once.Do(func() {
 		t := time.Now()
-		dump_dir = path.Join(dumpLocation, fmt.Sprintf("BlasterDump-%v", t.Format("2006-01-02-150405")))
-		err := os.Mkdir(dump_dir, 0777)
+		dumpDir = path.Join(dumpLocation, fmt.Sprintf("BlasterDump-%v", t.Format("2006-01-02-150405")))
+		err := os.Mkdir(dumpDir, 0777)
 		if err != nil {
-			log.Errorf("Fail to create dump dir %v:%v", dump_dir, err.Error())
+			log.Errorf("Fail to create dump dir %v:%v", dumpDir, err.Error())
 		}
 	})
 	defer syncDump.Done()
 
 	i := 0
 	for r := range chDump {
-		file_name := fmt.Sprintf("w%v_request_%v-%v", w.id, i, w.executor_name)
-		file_path := filepath.Join(dump_dir, file_name)
-		log.Info("generating dump file ", file_path)
+		fileName := fmt.Sprintf("w%v_request_%v-%v", w.id, i, w.executorName)
+		filePath := filepath.Join(dumpDir, fileName)
+		log.Info("generating dump file ", filePath)
 		i++
-		file, err := os.Create(file_path)
+		file, err := os.Create(filePath)
 		if err != nil {
-			log.Errorf("Fail to open file %v for request dump: %v", file_path, err.Error())
+			log.Errorf("Fail to open file %v for request dump: %v", filePath, err.Error())
 		} else {
 			rdump := &request_generators.RequestDump{}
 			rdump.Host = string(r.Host())
@@ -89,9 +92,10 @@ func (w *IngestWorker) dumpRequests(chDump chan *fasthttp.Request, dumpLocation 
 	}
 }
 
-func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
-	ch_req chan *request_generators.Request,
-	wg *sync.WaitGroup, release_req bool,
+//RunWorker : worker run function
+func (w *IngestWorker) RunWorker(chResp chan *request_generators.Response,
+	chReq chan *request_generators.Request,
+	wg *sync.WaitGroup, releaseReq bool,
 	countSubmitted *tui.Counter,
 	//ch_latency chan time.Duration,
 	//ch_statuses chan int,
@@ -107,7 +111,7 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 	var chDump chan *fasthttp.Request
 	var syncDump sync.WaitGroup
 
-	do_once.Do(func() {
+	doOnce.Do(func() {
 		log.Info("Running Ingestion workers")
 	})
 
@@ -123,12 +127,12 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 		submitRequest.Request.SetHost(w.host)
 	}
 
-	for req := range ch_req {
+	for req := range chReq {
 		reqType.Do(func() {
 			w.Results.Method = string(req.Request.Header.Method())
 		})
 
-		if release_req {
+		if releaseReq {
 			req.Request.SetHost(w.host)
 			submitRequest = req
 		} else {
@@ -142,9 +146,9 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 		var duration time.Duration
 		response := request_generators.AcquireResponse()
 	LOOP:
-		for i := 0; i < w.retry_count; i++ {
+		for i := 0; i < w.retryCount; i++ {
 
-			err, duration = w.send_request(submitRequest, response)
+			duration, err = w.sendRequest(submitRequest, response)
 			if err != nil {
 				//retry on error
 				response.Response.Reset()
@@ -154,10 +158,10 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 				//ch_latency <- d
 			}
 			if response.Response.StatusCode() >= http.StatusBadRequest {
-				if _, ok := w.retry_codes[response.Response.StatusCode()]; !ok {
+				if _, ok := w.retryCodes[response.Response.StatusCode()]; !ok {
 					//not subject to retry
 					break LOOP
-				} else if i+1 < w.retry_count {
+				} else if i+1 < w.retryCount {
 					//not the last loop
 					response.Response.Reset()
 				}
@@ -177,17 +181,17 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 			submitRequest.Request.CopyTo(r)
 			chDump <- r
 		}
-		if ch_resp != nil {
+		if chResp != nil {
 			response.Duration = duration
 			response.ID = submitRequest.ID
 			response.Cookie = req.Cookie
 			response.Endpoint = string(req.Request.Host())
 			response.RequestURI = string(submitRequest.Request.RequestURI())
-			ch_resp <- response
+			chResp <- response
 		} else {
 			request_generators.ReleaseResponse(response)
 		}
-		if release_req {
+		if releaseReq {
 			request_generators.ReleaseRequest(req)
 		}
 	}
@@ -197,5 +201,5 @@ func (w *IngestWorker) RunWorker(ch_resp chan *request_generators.Response,
 		syncDump.Wait()
 	}
 	w.hist.Close()
-	w.close_connection()
+	w.closeConnection()
 }

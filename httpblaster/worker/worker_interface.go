@@ -8,18 +8,19 @@ import (
 	//"time"
 )
 
+// Worker : worker interface
 type Worker interface {
-	UseBase(c WorkerBase)
+	UseBase(c Base)
 	Init(lazy int)
-	GetResults() worker_results
+	GetResults() Results
 	GetHist() map[int64]int
-	RunWorker(ch_resp chan *request_generators.Response,
-		ch_req chan *request_generators.Request,
+	RunWorker(chResp chan *request_generators.Response,
+		chReq chan *request_generators.Request,
 		wg *sync.WaitGroup,
-		release_req bool,
+		releaseReq bool,
 		countSubmitted *tui.Counter,
 		//ch_latency chan time.Duration,
 		//ch_statuses chan int,
-		dump_requests bool,
-		dump_location string)
+		dumpRequests bool,
+		dumpLocation string)
 }
