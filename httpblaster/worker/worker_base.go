@@ -179,12 +179,13 @@ func (w *Base) sendRequest(req *request_generators.Request, response *request_ge
 		err      error
 		duration time.Duration
 	)
+	host := w.domain
 	if w.lazySleep > 0 {
 		time.Sleep(w.lazySleep)
 	}
 	if w.resetConnection {
 		// log.Debugln("Restart Connection")
-		host := w.domain
+
 		if req.Host != "" {
 			host = req.Host
 		}
@@ -221,9 +222,10 @@ func (w *Base) sendRequest(req *request_generators.Request, response *request_ge
 	} else {
 		w.Results.ErrorCount++
 		log.Debugln(err.Error())
+		w.restartConnection(err, host)
 	}
 	if response.Response.ConnectionClose() {
-		w.restartConnection(err, string(req.Host))
+		w.restartConnection(err, host)
 	}
 
 	return duration, err
