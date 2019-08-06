@@ -66,7 +66,7 @@ type Executor struct {
 	StartTime        time.Time
 	DataBfr          []byte
 	WorkerQd         int
-	TermUI           *tui.Term_ui
+	TermUI           *tui.TermUI
 	ChGetLatency     chan time.Duration
 	ChPutLatency     chan time.Duration
 	CounterSubmitter *tui.Counter

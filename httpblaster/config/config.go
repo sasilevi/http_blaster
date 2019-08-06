@@ -36,10 +36,12 @@ func (d *duration) UnmarshalText(text []byte) error {
 	return err
 }
 
+// Sep : seperator
 type Sep struct {
 	Rune rune
 }
 
+// UnmarshalText : seperator unmarshal text
 func (r *Sep) UnmarshalText(text []byte) error {
 	if len(text) > 0 {
 		data := int32(text[0])
@@ -48,12 +50,14 @@ func (r *Sep) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// TomlConfig : configuration structure
 type TomlConfig struct {
 	Title     string
 	Global    Global
 	Workloads map[string]Workload
 }
 
+// Global : configuration global section
 type Global struct {
 	Duration              duration
 	BlockSize             int32

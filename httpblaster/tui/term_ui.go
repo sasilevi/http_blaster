@@ -1,15 +1,16 @@
 package tui
 
 import (
-	ui "github.com/sasile/termui"
-	"github.com/v3io/http_blaster/httpblaster/config"
 	"runtime"
 	"strconv"
 	"sync"
 	"time"
+
+	ui "github.com/sasile/termui"
+	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
-type Term_ui struct {
+type TermUI struct {
 	cfg                      *config.TomlConfig
 	widget_title             ui.GridBufferer
 	widget_sys_info          ui.GridBufferer
@@ -38,33 +39,33 @@ type StringsFifo struct {
 	lock        sync.Mutex
 }
 
-func (self *StringsFifo) Init(length int) {
-	self.Length = length
-	self.Items = make([]string, length)
-	self.ch_messages = make(chan string, 100)
+func (t *StringsFifo) Init(length int) {
+	t.Length = length
+	t.Items = make([]string, length)
+	t.ch_messages = make(chan string, 100)
 	go func() {
-		for msg := range self.ch_messages {
+		for msg := range t.ch_messages {
 			func() {
-				self.lock.Lock()
-				defer self.lock.Unlock()
-				if len(self.Items) < self.Length {
-					self.Items = append(self.Items, msg)
+				t.lock.Lock()
+				defer t.lock.Unlock()
+				if len(t.Items) < t.Length {
+					t.Items = append(t.Items, msg)
 				} else {
-					self.Items = self.Items[1:]
-					self.Items = append(self.Items, msg)
+					t.Items = t.Items[1:]
+					t.Items = append(t.Items, msg)
 				}
 			}()
 		}
 	}()
 }
 
-func (self *StringsFifo) Insert(msg string) {
-	self.ch_messages <- msg
+func (t *StringsFifo) Insert(msg string) {
+	t.ch_messages <- msg
 }
-func (self *StringsFifo) Get() []string {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-	return self.Items
+func (t *StringsFifo) Get() []string {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	return t.Items
 }
 
 type Float64Fifo struct {
@@ -74,27 +75,27 @@ type Float64Fifo struct {
 	Items  []float64
 }
 
-func (self *Float64Fifo) Init(length int) {
-	self.Length = length
-	self.index = 0
-	self.Items = make([]float64, length)
+func (t *Float64Fifo) Init(length int) {
+	t.Length = length
+	t.index = 0
+	t.Items = make([]float64, length)
 }
 
-func (self *Float64Fifo) Insert(i float64) {
-	if self.index < self.Length {
-		self.Items[self.index] = i
-		self.index++
+func (t *Float64Fifo) Insert(i float64) {
+	if t.index < t.Length {
+		t.Items[t.index] = i
+		t.index++
 	} else {
-		self.Items = self.Items[1:]
-		self.Items = append(self.Items, i)
+		t.Items = t.Items[1:]
+		t.Items = append(t.Items, i)
 	}
 }
-func (self *Float64Fifo) Get() []float64 {
-	return self.Items
+func (t *Float64Fifo) Get() []float64 {
+	return t.Items
 }
 
-func (self *Term_ui) ui_set_title(x, y, w, h int) ui.GridBufferer {
-	ui_titile_par := ui.NewPar("Running " + self.cfg.Title + " : PRESS q TO QUIT")
+func (t *TermUI) ui_set_title(x, y, w, h int) ui.GridBufferer {
+	ui_titile_par := ui.NewPar("Running " + t.cfg.Title + " : PRESS q TO QUIT")
 	ui_titile_par.Height = h
 	ui_titile_par.X = x
 	ui_titile_par.Y = y
@@ -106,27 +107,27 @@ func (self *Term_ui) ui_set_title(x, y, w, h int) ui.GridBufferer {
 		// press q to quit
 		ui.StopLoop()
 		ui.Close()
-		close(self.ch_done)
+		close(t.ch_done)
 	})
 	ui.Render(ui_titile_par)
 	return ui_titile_par
 }
 
-func (self *Term_ui) ui_set_servers_info(x, y, w, h int) ui.GridBufferer {
+func (t *TermUI) ui_set_servers_info(x, y, w, h int) ui.GridBufferer {
 	table1 := ui.NewTable()
 	var rows [][]string
 	rows = append(rows, []string{"Server", "Port", "TLS Mode"})
 	table1.Height += 1
-	if len(self.cfg.Global.Servers) == 0 {
-		rows = append(rows, []string{self.cfg.Global.Server,
-			self.cfg.Global.Port,
-			strconv.FormatBool(self.cfg.Global.TLSMode)})
+	if len(t.cfg.Global.Servers) == 0 {
+		rows = append(rows, []string{t.cfg.Global.Server,
+			t.cfg.Global.Port,
+			strconv.FormatBool(t.cfg.Global.TLSMode)})
 		table1.Height += 2
 	} else {
-		for _, s := range self.cfg.Global.Servers {
+		for _, s := range t.cfg.Global.Servers {
 			rows = append(rows, []string{s,
-				self.cfg.Global.Port,
-				strconv.FormatBool(self.cfg.Global.TLSMode)})
+				t.cfg.Global.Port,
+				strconv.FormatBool(t.cfg.Global.TLSMode)})
 			table1.Height += 2
 		}
 	}
@@ -141,7 +142,7 @@ func (self *Term_ui) ui_set_servers_info(x, y, w, h int) ui.GridBufferer {
 	return table1
 }
 
-func (self *Term_ui) ui_set_system_info(x, y, w, h int) ui.GridBufferer {
+func (t *TermUI) ui_set_system_info(x, y, w, h int) ui.GridBufferer {
 	table1 := ui.NewTable()
 	var rows [][]string
 	var mem_stat runtime.MemStats
@@ -159,7 +160,7 @@ func (self *Term_ui) ui_set_system_info(x, y, w, h int) ui.GridBufferer {
 	return table1
 }
 
-func (self *Term_ui) ui_set_log_list(x, y, w, h int) *ui.List {
+func (t *TermUI) ui_set_log_list(x, y, w, h int) *ui.List {
 	list := ui.NewList()
 	list.ItemFgColor = ui.ColorYellow
 	list.BorderLabel = "Log"
@@ -167,11 +168,11 @@ func (self *Term_ui) ui_set_log_list(x, y, w, h int) *ui.List {
 	list.Width = w
 	list.Y = y
 	list.X = x
-	list.Items = self.logs_fifo.Get()
+	list.Items = t.logs_fifo.Get()
 	return list
 }
 
-func (self *Term_ui) ui_set_requests_bar_chart(x, y, w, h int) *ui.BarChart {
+func (t *TermUI) ui_set_requests_bar_chart(x, y, w, h int) *ui.BarChart {
 	bc := ui.NewBarChart()
 	bc.BarGap = 3
 	bc.BarWidth = 8
@@ -188,7 +189,7 @@ func (self *Term_ui) ui_set_requests_bar_chart(x, y, w, h int) *ui.BarChart {
 	return bc
 }
 
-func (self *Term_ui) ui_set_put_latency_bar_chart(x, y, w, h int) *ui.BarChart {
+func (t *TermUI) ui_set_put_latency_bar_chart(x, y, w, h int) *ui.BarChart {
 	bc := ui.NewBarChart()
 	bc.BarGap = 3
 	bc.BarWidth = 8
@@ -205,7 +206,7 @@ func (self *Term_ui) ui_set_put_latency_bar_chart(x, y, w, h int) *ui.BarChart {
 	return bc
 }
 
-func (self *Term_ui) ui_set_get_latency_bar_chart(x, y, w, h int) *ui.BarChart {
+func (t *TermUI) ui_set_get_latency_bar_chart(x, y, w, h int) *ui.BarChart {
 	bc := ui.NewBarChart()
 	bc.BarGap = 3
 	bc.BarWidth = 8
@@ -222,7 +223,7 @@ func (self *Term_ui) ui_set_get_latency_bar_chart(x, y, w, h int) *ui.BarChart {
 	return bc
 }
 
-func (self *Term_ui) ui_get_iops(x, y, w, h int) *ui.LineChart {
+func (t *TermUI) ui_get_iops(x, y, w, h int) *ui.LineChart {
 	lc2 := ui.NewLineChart()
 	lc2.BorderLabel = "Get iops chart"
 	lc2.Mode = "braille"
@@ -233,15 +234,15 @@ func (self *Term_ui) ui_get_iops(x, y, w, h int) *ui.LineChart {
 	lc2.Y = y
 	lc2.AxesColor = ui.ColorWhite
 	lc2.LineColor = ui.ColorCyan | ui.AttrBold
-	lc2.Data = self.iops_get_fifo.Get()
+	lc2.Data = t.iops_get_fifo.Get()
 	return lc2
 }
 
-func (self *Term_ui) ui_put_iops(x, y, w, h int) *ui.LineChart {
+func (t *TermUI) ui_put_iops(x, y, w, h int) *ui.LineChart {
 	lc2 := ui.NewLineChart()
 	lc2.BorderLabel = "Put iops chart"
 	lc2.Mode = "braille"
-	lc2.Data = self.iops_put_fifo.Get()
+	lc2.Data = t.iops_put_fifo.Get()
 	lc2.Width = w
 	lc2.Height = h
 	lc2.X = x
@@ -251,7 +252,7 @@ func (self *Term_ui) ui_put_iops(x, y, w, h int) *ui.LineChart {
 	return lc2
 }
 
-func (self *Term_ui) Update_requests(duration time.Duration, put_count, get_count uint64) {
+func (t *TermUI) Update_requests(duration time.Duration, put_count, get_count uint64) {
 
 	seconds := uint64(duration.Seconds())
 	if seconds == 0 {
@@ -260,111 +261,111 @@ func (self *Term_ui) Update_requests(duration time.Duration, put_count, get_coun
 	put_iops := put_count / seconds
 	get_iops := get_count / seconds
 	if put_iops > 0 {
-		self.iops_put_fifo.Insert(float64(put_iops) / 1000)
+		t.iops_put_fifo.Insert(float64(put_iops) / 1000)
 	}
 	if get_iops > 0 {
-		self.iops_get_fifo.Insert(float64(get_iops) / 1000)
+		t.iops_get_fifo.Insert(float64(get_iops) / 1000)
 	}
-	self.widget_put_iops_chart.Data = self.iops_put_fifo.Get()
-	self.widget_get_iops_chart.Data = self.iops_get_fifo.Get()
+	t.widget_put_iops_chart.Data = t.iops_put_fifo.Get()
+	t.widget_get_iops_chart.Data = t.iops_get_fifo.Get()
 
 }
 
-func (self *Term_ui) Refresh_log() {
-	self.widget_logs.Items = self.logs_fifo.Get()
-	ui.Render(self.widget_logs)
+func (t *TermUI) Refresh_log() {
+	t.widget_logs.Items = t.logs_fifo.Get()
+	ui.Render(t.widget_logs)
 }
 
-func (self *Term_ui) Update_status_codes(labels []string, values []int) {
-	self.widget_request_bar_chart.Data = values
-	self.widget_request_bar_chart.DataLabels = labels
+func (t *TermUI) Update_status_codes(labels []string, values []int) {
+	t.widget_request_bar_chart.Data = values
+	t.widget_request_bar_chart.DataLabels = labels
 }
 
-func (self *Term_ui) Update_put_latency_chart(labels []string, values []int) {
-	self.widget_put_latency.Data = values
-	self.widget_put_latency.DataLabels = labels
+func (t *TermUI) Update_put_latency_chart(labels []string, values []int) {
+	t.widget_put_latency.Data = values
+	t.widget_put_latency.DataLabels = labels
 }
 
-func (self *Term_ui) Update_get_latency_chart(labels []string, values []int) {
-	self.widget_get_latency.Data = values
-	self.widget_get_latency.DataLabels = labels
+func (t *TermUI) Update_get_latency_chart(labels []string, values []int) {
+	t.widget_get_latency.Data = values
+	t.widget_get_latency.DataLabels = labels
 }
 
 func Percentage(value, total int) int {
 	return value * total / 100
 }
 
-func (self *Term_ui) Init_term_ui(cfg *config.TomlConfig) chan struct{} {
-	self.cfg = cfg
-	self.ch_done = make(chan struct{})
-	self.iops_get_fifo = &Float64Fifo{}
-	self.iops_get_fifo.Init(150)
-	self.iops_put_fifo = &Float64Fifo{}
-	self.iops_put_fifo.Init(150)
-	self.logs_fifo = &StringsFifo{}
-	self.logs_fifo.Init(10)
-	self.statuses = make(map[int]uint64)
+func (t *TermUI) InitTerminamlUI(cfg *config.TomlConfig) chan struct{} {
+	t.cfg = cfg
+	t.ch_done = make(chan struct{})
+	t.iops_get_fifo = &Float64Fifo{}
+	t.iops_get_fifo.Init(150)
+	t.iops_put_fifo = &Float64Fifo{}
+	t.iops_put_fifo.Init(150)
+	t.logs_fifo = &StringsFifo{}
+	t.logs_fifo.Init(10)
+	t.statuses = make(map[int]uint64)
 	err := ui.Init()
 	if err != nil {
 		panic(err)
 	}
 	term_hight := ui.TermHeight()
 
-	self.widget_title = self.ui_set_title(0, 0, 50, Percentage(7, term_hight))
-	self.widget_server_info = self.ui_set_servers_info(0, 0, 0, 0)
-	self.widget_sys_info = self.ui_set_system_info(0, 0, 0, self.widget_server_info.GetHeight())
-	self.widget_put_iops_chart = self.ui_put_iops(0, 0, 0, Percentage(30, term_hight))
-	self.widget_get_iops_chart = self.ui_get_iops(0, 0, 0, Percentage(30, term_hight))
-	self.widget_put_latency = self.ui_set_put_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
-	self.widget_get_latency = self.ui_set_get_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
-	self.widget_request_bar_chart = self.ui_set_requests_bar_chart(0, 0, 0, Percentage(20, term_hight))
-	self.widget_logs = self.ui_set_log_list(0, 0, 0, Percentage(20, term_hight))
+	t.widget_title = t.ui_set_title(0, 0, 50, Percentage(7, term_hight))
+	t.widget_server_info = t.ui_set_servers_info(0, 0, 0, 0)
+	t.widget_sys_info = t.ui_set_system_info(0, 0, 0, t.widget_server_info.GetHeight())
+	t.widget_put_iops_chart = t.ui_put_iops(0, 0, 0, Percentage(30, term_hight))
+	t.widget_get_iops_chart = t.ui_get_iops(0, 0, 0, Percentage(30, term_hight))
+	t.widget_put_latency = t.ui_set_put_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
+	t.widget_get_latency = t.ui_set_get_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
+	t.widget_request_bar_chart = t.ui_set_requests_bar_chart(0, 0, 0, Percentage(20, term_hight))
+	t.widget_logs = t.ui_set_log_list(0, 0, 0, Percentage(20, term_hight))
 
 	ui.Body.AddRows(
 		ui.NewRow(
-			ui.NewCol(12, 0, self.widget_title),
+			ui.NewCol(12, 0, t.widget_title),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, self.widget_sys_info),
-			ui.NewCol(6, 0, self.widget_server_info),
+			ui.NewCol(6, 0, t.widget_sys_info),
+			ui.NewCol(6, 0, t.widget_server_info),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, self.widget_put_iops_chart),
-			ui.NewCol(6, 0, self.widget_put_latency),
+			ui.NewCol(6, 0, t.widget_put_iops_chart),
+			ui.NewCol(6, 0, t.widget_put_latency),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, self.widget_get_iops_chart),
-			ui.NewCol(6, 0, self.widget_get_latency),
+			ui.NewCol(6, 0, t.widget_get_iops_chart),
+			ui.NewCol(6, 0, t.widget_get_latency),
 		),
 		ui.NewRow(
-			ui.NewCol(6, 0, self.widget_logs),
-			ui.NewCol(6, 0, self.widget_request_bar_chart),
+			ui.NewCol(6, 0, t.widget_logs),
+			ui.NewCol(6, 0, t.widget_request_bar_chart),
 		),
 	)
 
 	ui.Body.Align()
 	ui.Render(ui.Body)
 	go ui.Loop()
-	return self.ch_done
+	return t.ch_done
 }
 
-func (self *Term_ui) Render() {
+func (t *TermUI) Render() {
 	ui.Render(ui.Body)
 }
 
-func (self *Term_ui) Terminate_ui() {
+func (t *TermUI) Terminate_ui() {
 	ui.StopLoop()
 	ui.Close()
 }
 
-func (self *Term_ui) Write(p []byte) (n int, err error) {
+func (t *TermUI) Write(p []byte) (n int, err error) {
 	if p == nil {
 		return 0, nil
 	}
-	self.logs_fifo.Insert(string(p))
-	if self.widget_logs != nil {
-		self.widget_logs.Items = self.logs_fifo.Get()
+	t.logs_fifo.Insert(string(p))
+	if t.widget_logs != nil {
+		t.widget_logs.Items = t.logs_fifo.Get()
 	}
-	ui.Render(self.widget_logs)
+	ui.Render(t.widget_logs)
 	return len(p), nil
 }

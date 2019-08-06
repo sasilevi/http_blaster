@@ -9,6 +9,7 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// Bquery : bquery return query result channel
 type Bquery struct {
 }
 

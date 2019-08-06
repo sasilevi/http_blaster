@@ -41,91 +41,91 @@ import (
 )
 
 var (
-	start_time      time.Time
-	end_time        time.Time
-	wl_id           int32 = -1
-	conf_file       string
-	results_file    string
-	showVersion     bool
-	dataBfr         []byte
-	cpu_profile     = false
-	mem_profile     = false
-	cfg             config.TomlConfig
-	executors       []*httpblaster.Executor
-	ex_group        sync.WaitGroup
-	enable_log      bool
-	log_file        *os.File
-	worker_qd       int  = 10000
-	verbose         bool = false
-	enable_ui       bool
-	enable_counters bool
-	chPutLatency    chan time.Duration
-	chGetLatency    chan time.Duration
-	countGenerated  *tui.Counter
-	countSubmitted  *tui.Counter
-	countAnalyzed   *tui.Counter
+	startTime             time.Time
+	endTime               time.Time
+	wlID                  int32 = -1
+	confFile              string
+	resultsFile           string
+	showVersion           bool
+	dataBfr               []byte
+	cpuProfile            = false
+	memProfile            = false
+	cfg                   config.TomlConfig
+	executors             []*httpblaster.Executor
+	exGroup               sync.WaitGroup
+	enableLog             bool
+	logFile               *os.File
+	workerQD              = 10000
+	verbose               = false
+	enableUI              bool
+	enableRequestCounters bool
+	chPutLatency          chan time.Duration
+	chGetLatency          chan time.Duration
+	countGenerated        *tui.Counter
+	countSubmitted        *tui.Counter
+	countAnalyzed         *tui.Counter
 	//LatencyCollectorGet histogram.LatencyHist// tui.LatencyCollector
 	//LatencyCollectorPut histogram.LatencyHist//tui.LatencyCollector
 	//StatusesCollector   tui.StatusesCollector
-	term_ui                  *tui.Term_ui
-	dump_failures            bool   = true
-	dump_location            string = "."
-	max_concurrent_workloads int    = 1000
+	termUI                 *tui.TermUI
+	dumpFailures           = true
+	dumpLocation           = "."
+	maxConcurrentWorkloads = 1000
 )
 
-const AppVersion = "3.0.9"
+const appVersion = "3.0.9"
 
 func init() {
 	const (
-		default_conf                     = "example.toml"
-		usage_conf                       = "conf file path"
-		usage_version                    = "show version"
-		default_showversion              = false
-		usage_results_file               = "results file path"
-		default_results_file             = "example.results"
-		usage_log_file                   = "enable stdout to log"
-		default_log_file                 = true
-		default_worker_qd                = 10000
-		usage_worker_qd                  = "queue depth for worker requests"
-		usage_verbose                    = "print debug logs"
-		default_verbose                  = false
-		usage_memprofile                 = "write mem profile to file"
-		default_memprofile               = false
-		usage_cpuprofile                 = "write cpu profile to file"
-		default_cpuprofile               = false
-		usage_enable_ui                  = "enable terminal ui"
-		default_enable_ui                = false
-		usage_dump_failures              = "enable 4xx status requests dump to file"
-		defaule_dump_failures            = false
-		usage_dump_location              = "location of dump requests"
-		default_dump_location            = "."
-		default_max_concurrent_workloads = 1000
-		usage_max_concurrent_workloads   = "max concurrent workloads"
+		defaultConf                   = "example.toml"
+		usageConf                     = "conf file path"
+		usageVersion                  = "show version"
+		defaultShowVersion            = false
+		usageResultsFile              = "results file path"
+		defaultResultsFile            = "example.results"
+		usageLogFile                  = "enable stdout to log"
+		defaultLogFile                = true
+		defaultWorkerQD               = 10000
+		usageWorkerQD                 = "queue depth for worker requests"
+		usageVerbose                  = "print debug logs"
+		defaultVerbose                = false
+		usageMemprofile               = "write mem profile to file"
+		defaultMemprofile             = false
+		usageCPUProfile               = "write cpu profile to file"
+		defaultCPUProfile             = false
+		usageEnableUI                 = "enable terminal ui"
+		defaultEnableUI               = false
+		usageDumpFailures             = "enable 4xx status requests dump to file"
+		defauleDumpFailures           = false
+		usageDumpLocation             = "location of dump requests"
+		defaultDumpLocation           = "."
+		defaultMaxConcurrentWorkloads = 1000
+		usageMaxConcurrentWorkloads   = "max concurrent workloads"
 	)
-	flag.StringVar(&conf_file, "conf", default_conf, usage_conf)
-	flag.StringVar(&conf_file, "c", default_conf, usage_conf+" (shorthand)")
-	flag.StringVar(&results_file, "o", default_results_file, usage_results_file+" (shorthand)")
-	flag.BoolVar(&showVersion, "version", default_showversion, usage_version)
-	flag.BoolVar(&cpu_profile, "p", default_cpuprofile, usage_cpuprofile)
-	flag.BoolVar(&mem_profile, "m", default_memprofile, usage_memprofile)
-	flag.BoolVar(&enable_log, "d", default_log_file, usage_log_file)
-	flag.BoolVar(&verbose, "v", default_verbose, usage_verbose)
-	flag.IntVar(&worker_qd, "q", default_worker_qd, usage_worker_qd)
-	flag.BoolVar(&enable_ui, "u", default_enable_ui, usage_enable_ui)
-	flag.BoolVar(&dump_failures, "f", defaule_dump_failures, usage_dump_failures)
-	flag.BoolVar(&enable_counters, "enable-counters", true, "enable counters logging during run")
-	flag.StringVar(&dump_location, "l", default_dump_location, usage_dump_location)
-	flag.IntVar(&max_concurrent_workloads, "n", default_max_concurrent_workloads, usage_max_concurrent_workloads)
+	flag.StringVar(&confFile, "conf", defaultConf, usageConf)
+	flag.StringVar(&confFile, "c", defaultConf, usageConf+" (shorthand)")
+	flag.StringVar(&resultsFile, "o", defaultResultsFile, usageResultsFile+" (shorthand)")
+	flag.BoolVar(&showVersion, "version", defaultShowVersion, usageVersion)
+	flag.BoolVar(&cpuProfile, "p", defaultCPUProfile, usageCPUProfile)
+	flag.BoolVar(&memProfile, "m", defaultMemprofile, usageMemprofile)
+	flag.BoolVar(&enableLog, "d", defaultLogFile, usageLogFile)
+	flag.BoolVar(&verbose, "v", defaultVerbose, usageVerbose)
+	flag.IntVar(&workerQD, "q", defaultWorkerQD, usageWorkerQD)
+	flag.BoolVar(&enableUI, "u", defaultEnableUI, usageEnableUI)
+	flag.BoolVar(&dumpFailures, "f", defauleDumpFailures, usageDumpFailures)
+	flag.BoolVar(&enableRequestCounters, "enable-counters", true, "enable counters logging during run")
+	flag.StringVar(&dumpLocation, "l", defaultDumpLocation, usageDumpLocation)
+	flag.IntVar(&maxConcurrentWorkloads, "n", defaultMaxConcurrentWorkloads, usageMaxConcurrentWorkloads)
 }
 
-func get_workload_id() int {
-	return int(atomic.AddInt32(&wl_id, 1))
+func getWorkloadID() int {
+	return int(atomic.AddInt32(&wlID, 1))
 }
 
-func start_cpu_profile() {
-	if cpu_profile {
+func startCPUProfile() {
+	if cpuProfile {
 		log.Println("CPU Profile enabled")
-		f, err := os.Create("cpu_profile")
+		f, err := os.Create("cpuProfile")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -133,16 +133,16 @@ func start_cpu_profile() {
 	}
 }
 
-func stop_cpu_profile() {
-	if cpu_profile {
+func stopCPUProfile() {
+	if cpuProfile {
 		pprof.StopCPUProfile()
 	}
 }
 
-func write_mem_profile() {
-	if mem_profile {
+func writeMemProfile() {
+	if memProfile {
 		log.Println("MEM Profile enabled")
-		f, err := os.Create("mem_profile")
+		f, err := os.Create("memProfile")
 		defer f.Close()
 		if err != nil {
 			log.Fatal(err)
@@ -151,17 +151,17 @@ func write_mem_profile() {
 	}
 }
 
-func parse_cmd_line_args() {
+func parseCmdlineargs() {
 	flag.Parse()
 	if showVersion {
-		fmt.Println(AppVersion)
+		fmt.Println(appVersion)
 		os.Exit(0)
 	}
 }
 
-func load_test_Config() {
+func loadConfig() {
 	var err error
-	cfg, err = config.LoadConfig(conf_file)
+	cfg, err = config.LoadConfig(confFile)
 	if err != nil {
 		log.Println(err)
 		log.Fatalln("Failed to parse config file")
@@ -170,13 +170,13 @@ func load_test_Config() {
 		cfg.Global.Servers, cfg.Global.Port, cfg.Global.TLSMode,
 		cfg.Global.BlockSize, cfg.Global.Duration)
 	dataBfr = make([]byte, cfg.Global.BlockSize, cfg.Global.BlockSize)
-	for i, _ := range dataBfr {
+	for i := range dataBfr {
 		dataBfr[i] = byte(rand.Int())
 	}
 
 }
 
-func generate_executors(term_ui *tui.Term_ui) {
+func generateExecutors(termUI *tui.TermUI) {
 	//chPutLatency = LatencyCollectorPut.New()
 	//chGetLatency = LatencyCollectorGet.New()
 	//ch_statuses := StatusesCollector.New(160, 1)
@@ -186,7 +186,7 @@ func generate_executors(term_ui *tui.Term_ui) {
 
 	for Name, workload := range cfg.Workloads {
 		log.Println("Adding executor for ", Name)
-		workload.ID = get_workload_id()
+		workload.ID = getWorkloadID()
 
 		e := &httpblaster.Executor{
 			Globals:          cfg.Global,
@@ -195,51 +195,51 @@ func generate_executors(term_ui *tui.Term_ui) {
 			Hosts:            cfg.Global.Servers,
 			TLSMode:          cfg.Global.TLSMode,
 			DataBfr:          dataBfr,
-			TermUI:           term_ui,
+			TermUI:           termUI,
 			ChGetLatency:     chGetLatency,
 			ChPutLatency:     chPutLatency,
 			CounterSubmitter: countSubmitted,
 			CounterGenerated: countGenerated,
 			CounterAnalyzed:  countAnalyzed,
 			//Ch_statuses:    ch_statuses,
-			DumpFailures: dump_failures,
-			DumpLocation: dump_location}
+			DumpFailures: dumpFailures,
+			DumpLocation: dumpLocation}
 		executors = append(executors, e)
 	}
 }
 
-func start_executors() {
-	start_time = time.Now()
+func startExecutors() {
+	startTime = time.Now()
 	for i, e := range executors {
-		ex_group.Add(1)
-		e.Start(&ex_group)
-		if i > 0 && i%max_concurrent_workloads == 0 {
-			wait_for_completion()
+		exGroup.Add(1)
+		e.Start(&exGroup)
+		if i > 0 && i%maxConcurrentWorkloads == 0 {
+			waitForCompletion()
 		}
 	}
 }
 
-func wait_for_completion() {
+func waitForCompletion() {
 	log.Println("Wait for executors to finish")
-	ex_group.Wait()
-	end_time = time.Now()
+	exGroup.Wait()
+	endTime = time.Now()
 	//close(chGetLatency)
 	///close(chPutLatency)
 }
 
-func wait_for_ui_completion(ch_done chan struct{}) {
-	if enable_ui {
+func waitUICompletion(chDone chan struct{}) {
+	if enableUI {
 		select {
-		case <-ch_done:
+		case <-chDone:
 			break
 		case <-time.After(time.Second * 10):
-			close(ch_done)
+			close(chDone)
 			break
 		}
 	}
 }
 
-func report_executor_result(file string) {
+func reportExecutorResult(file string) {
 	fname := fmt.Sprintf("%s.executors", file)
 	f, err := os.Create(fname)
 	if err != nil {
@@ -268,125 +268,125 @@ func report_executor_result(file string) {
 }
 
 func report() int {
-	var overall_requests uint64 = 0
-	var overall_get_requests uint64 = 0
-	var overall_put_requests uint64 = 0
-	var overall_get_lat_max time.Duration = 0
-	var overall_get_lat_min time.Duration = 0
-	var overall_put_lat_max time.Duration = 0
-	var overall_put_lat_min time.Duration = 0
-	var overall_iops uint64 = 0
-	var overall_get_iops uint64 = 0
-	var overall_put_iops uint64 = 0
-	var overall_get_avg_lat time.Duration = 0
-	var overall_put_avg_lat time.Duration = 0
-	var overall_get_executors int = 0
-	var overall_put_executors int = 0
-	var overall_statuses map[int]uint64 = make(map[int]uint64)
-	var overall_counters map[string]int64 = make(map[string]int64)
-	var overall_response_errors = make([]error, 0)
-	var overall_connection_errors uint32 = 0
+	var overallRequests uint64
+	var overallGetRequests uint64
+	var overallPutRequests uint64
+	var overallGetLatMax time.Duration
+	var overallGetLatMin time.Duration
+	var overallPutLatMax time.Duration
+	var overallPutLatMin time.Duration
+	var overallIOps uint64
+	var overallGetIOps uint64
+	var overallPutIOps uint64
+	var overallGetAVGLat time.Duration
+	var overallPutAVGLat time.Duration
+	var overallGetExecutors int
+	var overallPutExecutors int
+	var overallStatuses = make(map[int]uint64)
+	var overallCounters = make(map[string]int64)
+	var overallResponseErrors = make([]error, 0)
+	var overallConnectionErrors uint32
 
 	errors := make([]error, 0)
-	duration := end_time.Sub(start_time)
+	duration := endTime.Sub(startTime)
 	for _, executor := range executors {
 		results, err := executor.Report()
-		overall_connection_errors += results.ConnectionErrors
+		overallConnectionErrors += results.ConnectionErrors
 		if err != nil {
 			errors = append(errors, err)
 		}
 		if results.ResponseErrors != nil {
-			overall_response_errors = append(overall_response_errors, results.ResponseErrors)
+			overallResponseErrors = append(overallResponseErrors, results.ResponseErrors)
 		}
 		for k, v := range results.Counters {
-			overall_counters[k] += v
+			overallCounters[k] += v
 		}
 		for k, v := range results.Statuses {
-			overall_statuses[k] += v
+			overallStatuses[k] += v
 		}
-		overall_requests += results.Total
+		overallRequests += results.Total
 		if executor.Workload.Type == "GET" {
-			overall_get_executors++
-			overall_get_requests += results.Total
-			overall_get_iops += results.Iops
-			overall_get_avg_lat += results.Avg
-			if overall_get_lat_max < results.Max {
-				overall_get_lat_max = results.Max
+			overallGetExecutors++
+			overallGetRequests += results.Total
+			overallGetIOps += results.Iops
+			overallGetAVGLat += results.Avg
+			if overallGetLatMax < results.Max {
+				overallGetLatMax = results.Max
 			}
-			if overall_get_lat_min == 0 {
-				overall_get_lat_min = results.Min
+			if overallGetLatMin == 0 {
+				overallGetLatMin = results.Min
 			}
-			if overall_get_lat_min > results.Min {
-				overall_get_lat_min = results.Min
+			if overallGetLatMin > results.Min {
+				overallGetLatMin = results.Min
 			}
 		} else {
-			overall_put_executors++
-			overall_put_requests += results.Total
-			overall_put_iops += results.Iops
-			overall_put_avg_lat += results.Avg
-			if overall_put_lat_max < results.Max {
-				overall_put_lat_max = results.Max
+			overallPutExecutors++
+			overallPutRequests += results.Total
+			overallPutIOps += results.Iops
+			overallPutAVGLat += results.Avg
+			if overallPutLatMax < results.Max {
+				overallPutLatMax = results.Max
 			}
-			if overall_put_lat_min == 0 {
-				overall_put_lat_min = results.Min
+			if overallPutLatMin == 0 {
+				overallPutLatMin = results.Min
 			}
-			if overall_put_lat_min > results.Min {
-				overall_put_lat_min = results.Min
+			if overallPutLatMin > results.Min {
+				overallPutLatMin = results.Min
 			}
 		}
 
-		overall_iops += results.Iops
+		overallIOps += results.Iops
 	}
-	if overall_get_requests != 0 {
-		overall_get_avg_lat = time.Duration(float64(overall_get_avg_lat) / float64(overall_get_executors))
+	if overallGetRequests != 0 {
+		overallGetAVGLat = time.Duration(float64(overallGetAVGLat) / float64(overallGetExecutors))
 	}
-	if overall_put_requests != 0 {
-		overall_put_avg_lat = time.Duration(float64(overall_put_avg_lat) / float64(overall_put_executors))
+	if overallPutRequests != 0 {
+		overallPutAVGLat = time.Duration(float64(overallPutAVGLat) / float64(overallPutExecutors))
 	}
 
-	report_executor_result(results_file)
+	reportExecutorResult(resultsFile)
 
 	log.Println("Duration: ", duration)
 	log.Println("Overall Results: ")
-	log.Println("Overall Requests: ", overall_requests)
-	log.Println("Overall GET Requests: ", overall_get_requests)
-	log.Println("Overall GET Min Latency: ", overall_get_lat_min)
-	log.Println("Overall GET Max Latency: ", overall_get_lat_max)
-	log.Println("Overall GET Avg Latency: ", overall_get_avg_lat)
-	log.Println("Overall PUT Requests: ", overall_put_requests)
-	log.Println("Overall PUT Min Latency: ", overall_put_lat_min)
-	log.Println("Overall PUT Max Latency: ", overall_put_lat_max)
-	log.Println("Overall PUT Avg Latency: ", overall_put_avg_lat)
-	log.Println("Overall IOPS: ", overall_iops)
-	log.Println("Overall GET IOPS: ", overall_get_iops)
-	log.Println("Overall PUT IOPS: ", overall_put_iops)
-	log.Println("Overall Statuses: ", overall_statuses)
-	countersStr, err := json.MarshalIndent(overall_counters, "", " ")
+	log.Println("Overall Requests: ", overallRequests)
+	log.Println("Overall GET Requests: ", overallGetRequests)
+	log.Println("Overall GET Min Latency: ", overallGetLatMin)
+	log.Println("Overall GET Max Latency: ", overallGetLatMax)
+	log.Println("Overall GET Avg Latency: ", overallGetAVGLat)
+	log.Println("Overall PUT Requests: ", overallPutRequests)
+	log.Println("Overall PUT Min Latency: ", overallPutLatMin)
+	log.Println("Overall PUT Max Latency: ", overallPutLatMax)
+	log.Println("Overall PUT Avg Latency: ", overallPutAVGLat)
+	log.Println("Overall IOPS: ", overallIOps)
+	log.Println("Overall GET IOPS: ", overallGetIOps)
+	log.Println("Overall PUT IOPS: ", overallPutIOps)
+	log.Println("Overall Statuses: ", overallStatuses)
+	countersStr, err := json.MarshalIndent(overallCounters, "", " ")
 	log.Println("Overall counters: \n", string(countersStr))
 
-	f, err := os.Create(results_file)
+	f, err := os.Create(resultsFile)
 	defer f.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	f.WriteString(fmt.Sprintf("[global]\n"))
-	f.WriteString(fmt.Sprintf("overall_requests=%v\n", overall_requests))
-	f.WriteString(fmt.Sprintf("overall_iops=%v\n", overall_iops))
+	f.WriteString(fmt.Sprintf("overall_requests=%v\n", overallRequests))
+	f.WriteString(fmt.Sprintf("overall_iops=%v\n", overallIOps))
 	f.WriteString(fmt.Sprintf("\n[get]\n"))
-	f.WriteString(fmt.Sprintf("overall_requests=%v\n", overall_get_requests))
-	f.WriteString(fmt.Sprintf("overall_iops=%v\n", overall_get_iops))
-	f.WriteString(fmt.Sprintf("overall_lat_min=%vusec\n", overall_get_lat_min.Nanoseconds()/1e3))
-	f.WriteString(fmt.Sprintf("overall_lat_max=%vusec\n", overall_get_lat_max.Nanoseconds()/1e3))
-	f.WriteString(fmt.Sprintf("overall_lat_avg=%vusec\n", overall_get_avg_lat.Nanoseconds()/1e3))
+	f.WriteString(fmt.Sprintf("overall_requests=%v\n", overallGetRequests))
+	f.WriteString(fmt.Sprintf("overall_iops=%v\n", overallGetIOps))
+	f.WriteString(fmt.Sprintf("overall_lat_min=%vusec\n", overallGetLatMin.Nanoseconds()/1e3))
+	f.WriteString(fmt.Sprintf("overall_lat_max=%vusec\n", overallGetLatMax.Nanoseconds()/1e3))
+	f.WriteString(fmt.Sprintf("overall_lat_avg=%vusec\n", overallGetAVGLat.Nanoseconds()/1e3))
 	f.WriteString(fmt.Sprintf("\n[put]\n"))
-	f.WriteString(fmt.Sprintf("overall_requests=%v\n", overall_put_requests))
-	f.WriteString(fmt.Sprintf("overall_iops=%v\n", overall_put_iops))
-	f.WriteString(fmt.Sprintf("overall_lat_min=%vusec\n", overall_put_lat_min.Nanoseconds()/1e3))
-	f.WriteString(fmt.Sprintf("overall_lat_max=%vusec\n", overall_put_lat_max.Nanoseconds()/1e3))
-	f.WriteString(fmt.Sprintf("overall_lat_avg=%vusec\n", overall_put_avg_lat.Nanoseconds()/1e3))
+	f.WriteString(fmt.Sprintf("overall_requests=%v\n", overallPutRequests))
+	f.WriteString(fmt.Sprintf("overall_iops=%v\n", overallPutIOps))
+	f.WriteString(fmt.Sprintf("overall_lat_min=%vusec\n", overallPutLatMin.Nanoseconds()/1e3))
+	f.WriteString(fmt.Sprintf("overall_lat_max=%vusec\n", overallPutLatMax.Nanoseconds()/1e3))
+	f.WriteString(fmt.Sprintf("overall_lat_avg=%vusec\n", overallPutAVGLat.Nanoseconds()/1e3))
 
-	getKeys, getValues, putKeys, putVlaues := dump_latencies_histograms()
+	getKeys, getValues, putKeys, putVlaues := dumpLatenciesHistograms()
 	f.WriteString(fmt.Sprintf("\n[get hist]\n"))
 	for i, v := range getKeys {
 		f.WriteString(fmt.Sprintf("%s=%3.4f\n", strings.TrimSpace(v), getValues[i]))
@@ -402,20 +402,20 @@ func report() int {
 		}
 		return 2
 	}
-	if len(overall_response_errors) > 0 {
-		for _, e := range overall_response_errors {
+	if len(overallResponseErrors) > 0 {
+		for _, e := range overallResponseErrors {
 			log.Errorln(e)
 		}
 		return 3
 	}
-	if overall_connection_errors > 0 {
-		log.Errorln("Test had ", overall_connection_errors, " connection errors")
+	if overallConnectionErrors > 0 {
+		log.Errorln("Test had ", overallConnectionErrors, " connection errors")
 		return 4
 	}
 	return 0
 }
 
-func configure_log() {
+func configureLog() {
 
 	log.SetFormatter(&log.TextFormatter{ForceColors: true,
 		FullTimestamp:   true,
@@ -427,73 +427,73 @@ func configure_log() {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	if enable_log {
-		file_name := fmt.Sprintf("%s.log", results_file)
-		var err error = nil
-		log_file, err = os.Create(file_name)
+	if enableLog {
+		filename := fmt.Sprintf("%s.log", resultsFile)
+		var err error
+		logFile, err = os.Create(filename)
 		if err != nil {
 			log.Fatalln("failed to open log file")
 		} else {
-			var log_writers io.Writer
-			if enable_ui {
-				log_writers = io.MultiWriter(log_file, term_ui)
+			var logWriters io.Writer
+			if enableUI {
+				logWriters = io.MultiWriter(logFile, termUI)
 			} else {
-				log_writers = io.MultiWriter(os.Stdout, log_file)
+				logWriters = io.MultiWriter(os.Stdout, logFile)
 			}
-			log.SetOutput(log_writers)
+			log.SetOutput(logWriters)
 		}
 	}
 }
 
-func close_log_file() {
-	if log_file != nil {
-		log_file.Close()
+func closeLogFile() {
+	if logFile != nil {
+		logFile.Close()
 	}
 }
 
-func exit(err_code int) {
-	if err_code != 0 {
+func exit(errCode int) {
+	if errCode != 0 {
 		log.Errorln("Test failed with error")
-		os.Exit(err_code)
+		os.Exit(errCode)
 	}
 	log.Println("Test completed successfully")
 }
 
-func handle_exit() {
+func handleExit() {
 	if err := recover(); err != nil {
 		log.Println(err)
 		log.Exit(1)
 	}
 }
 
-func enable_tui() chan struct{} {
-	if enable_ui {
-		term_ui = &tui.Term_ui{}
-		ch_done := term_ui.Init_term_ui(&cfg)
+func enableTUI() chan struct{} {
+	if enableUI {
+		termUI = &tui.TermUI{}
+		chDone := termUI.InitTerminamlUI(&cfg)
 		go func() {
-			defer term_ui.Terminate_ui()
+			defer termUI.Terminate_ui()
 			tick := time.Tick(time.Millisecond * 500)
 			for {
 				select {
-				case <-ch_done:
+				case <-chDone:
 					return
 				case <-tick:
-					//term_ui.Update_put_latency_chart(LatencyCollectorPut.Get())
-					//term_ui.Update_get_latency_chart(LatencyCollectorGet.Get())
-					//term_ui.Update_status_codes(StatusesCollector.Get())
-					term_ui.Refresh_log()
-					term_ui.Render()
+					//termUI.Update_put_latency_chart(LatencyCollectorPut.Get())
+					//termUI.Update_get_latency_chart(LatencyCollectorGet.Get())
+					//termUI.Update_status_codes(StatusesCollector.Get())
+					termUI.Refresh_log()
+					termUI.Render()
 				}
 			}
 		}()
-		return ch_done
+		return chDone
 	}
 	return nil
 }
 
 func enableCounters() chan struct{} {
 	chDone := make(chan struct{})
-	if enable_counters {
+	if enableRequestCounters {
 		go func() {
 			tick := time.Tick(time.Second * 1)
 			for {
@@ -512,33 +512,33 @@ func enableCounters() chan struct{} {
 	}
 	return nil
 }
-func dump_latencies_histograms() ([]string, []float64, []string, []float64) {
-	latency_get := make(map[int64]int)
-	latency_put := make(map[int64]int)
-	total_get := 0
-	total_put := 0
+func dumpLatenciesHistograms() ([]string, []float64, []string, []float64) {
+	latencyGet := make(map[int64]int)
+	latencyPut := make(map[int64]int)
+	totalGet := 0
+	totalPut := 0
 
 	for _, e := range executors {
 		hist := e.LatencyHist()
 		if e.GetType() == "GET" {
 			for k, v := range hist {
-				latency_get[k] += v
-				total_get += v
+				latencyGet[k] += v
+				totalGet += v
 			}
 		} else {
 			for k, v := range hist {
-				latency_put[k] += v
-				total_put += v
+				latencyPut[k] += v
+				totalPut += v
 			}
 		}
 	}
-	getKeys, getValues := dump_latency_histogram(latency_get, total_get, "GET")
-	putKeys, putValues := dump_latency_histogram(latency_put, total_put, "PUT")
+	getKeys, getValues := dumpLatencyHistogram(latencyGet, totalGet, "GET")
+	putKeys, putValues := dumpLatencyHistogram(latencyPut, totalPut, "PUT")
 	return getKeys, getValues, putKeys, putValues
 
 }
 
-func remap_latency_histogram(hist map[int64]int) map[int64]int {
+func remapLatencyHistogram(hist map[int64]int) map[int64]int {
 	res := make(map[int64]int)
 	for k, v := range hist {
 		if k > 10000 { //1 sec
@@ -562,63 +562,63 @@ func remap_latency_histogram(hist map[int64]int) map[int64]int {
 	return res
 }
 
-func dump_latency_histogram(histogram map[int64]int, total int, req_type string) ([]string, []float64) {
+func dumpLatencyHistogram(histogram map[int64]int, total int, reqType string) ([]string, []float64) {
 	var keys []int
 	var prefix string
 	title := "type \t usec \t\t percentage\n"
-	if req_type == "GET" {
+	if reqType == "GET" {
 		prefix = "GetHist"
 	} else {
 		prefix = "PutHist"
 	}
 	strout := fmt.Sprintf("%s Latency Histograms:\n", prefix)
-	hist := remap_latency_histogram(histogram)
+	hist := remapLatencyHistogram(histogram)
 	for k := range hist {
 		keys = append(keys, int(k))
 	}
 	sort.Ints(keys)
 	log.Debugln("latency hist wait released")
-	res_strings := []string{}
-	res_values := []float64{}
+	resStrings := []string{}
+	resValues := []float64{}
 
 	for _, k := range keys {
 		v := hist[int64(k)]
-		res_strings = append(res_strings, fmt.Sprintf("%d", k*100))
+		resStrings = append(resStrings, fmt.Sprintf("%d", k*100))
 		value := float64(v*100) / float64(total)
-		res_values = append(res_values, value)
+		resValues = append(resValues, value)
 	}
 
-	if len(res_strings) > 0 {
+	if len(resStrings) > 0 {
 		strout += title
-		for i, v := range res_strings {
-			strout += fmt.Sprintf("%s: %5s \t\t %3.4f%%\n", prefix, v, res_values[i])
+		for i, v := range resStrings {
+			strout += fmt.Sprintf("%s: %5s \t\t %3.4f%%\n", prefix, v, resValues[i])
 		}
 	}
 	log.Println(strout)
-	return res_strings, res_values
+	return resStrings, resValues
 }
 
 func main() {
-	parse_cmd_line_args()
-	load_test_Config()
-	ch_done := enable_tui()
-	configure_log()
+	parseCmdlineargs()
+	loadConfig()
+	chDone := enableTUI()
+	configureLog()
 	log.Println("Starting http_blaster")
 
-	//defer handle_exit()
-	//defer close_log_file()
-	defer stop_cpu_profile()
-	defer write_mem_profile()
+	//defer handleExit()
+	//defer closeLogFile()
+	defer stopCPUProfile()
+	defer writeMemProfile()
 
-	start_cpu_profile()
+	startCPUProfile()
 	enableCounters()
-	generate_executors(term_ui)
-	start_executors()
-	wait_for_completion()
+	generateExecutors(termUI)
+	startExecutors()
+	waitForCompletion()
 	log.Println("Executors done!")
 	//dump_status_code_histogram()
-	err_code := report()
-	log.Println("Done with error code ", err_code)
-	wait_for_ui_completion(ch_done)
-	exit(err_code)
+	errCode := report()
+	log.Println("Done with error code ", errCode)
+	waitUICompletion(chDone)
+	exit(errCode)
 }
