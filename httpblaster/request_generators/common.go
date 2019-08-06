@@ -97,10 +97,23 @@ func (self *RequestCommon) SetBaseUri(tls_mode bool, host string, container stri
 	if tls_mode {
 		http += "s"
 	}
-	self.base_uri = fmt.Sprintf("%s://%s/%s/%s", http, host, container, target)
+
+	self.base_uri = fmt.Sprintf("%s://%s", http, host)
+
+	if len(container) > 0 {
+		self.base_uri += fmt.Sprintf("/%s", container)
+
+	}
+	if len(target) > 0 {
+		self.base_uri += fmt.Sprintf("/%s", target)
+	}
 }
 
 func (self *RequestCommon) GetUri(target string, params string) string {
-	u := url.URL{Path: fmt.Sprintf("%s/%s", self.base_uri, target)}
+	if len(target) > 0 {
+		u := url.URL{Path: fmt.Sprintf("%s/%s", self.base_uri, target)}
+		return u.EscapedPath() + params
+	}
+	u := url.URL{Path: self.base_uri}
 	return u.EscapedPath() + params
 }
