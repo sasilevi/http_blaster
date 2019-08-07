@@ -237,7 +237,7 @@ func (w *Base) Init(lazy int) {
 	w.Results.Min = time.Duration(time.Second * 10)
 	err := w.openConnection(w.domain)
 	if err != nil {
-		panic(w.domain)
+		panic(err)
 	}
 	w.chDuration = make(chan time.Duration, 1)
 	w.chError = make(chan error, 1)
