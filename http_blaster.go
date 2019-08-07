@@ -73,7 +73,7 @@ var (
 	maxConcurrentWorkloads = 1000
 )
 
-const appVersion = "3.0.9"
+const appVersion = "4.0.0"
 
 func init() {
 	const (
@@ -600,6 +600,7 @@ func dumpLatencyHistogram(histogram map[int64]int, total int, reqType string) ([
 
 func main() {
 	parseCmdlineargs()
+	log.Println("Started http_blaster version:", appVersion)
 	loadConfig()
 	chDone := enableTUI()
 	configureLog()
