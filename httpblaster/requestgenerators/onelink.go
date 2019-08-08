@@ -20,7 +20,7 @@ type Onelink struct {
 }
 
 //UseCommon : force abstract use
-func (ol *Onelink) UseCommon(c RequestCommon) {
+func (ol *Onelink) useCommon(c RequestCommon) {
 
 }
 

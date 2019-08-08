@@ -23,7 +23,7 @@ type TestHost struct {
 }
 
 //UseCommon : force abstract use
-func (ol *Impersonate) UseCommon(c RequestCommon) {
+func (ol *Impersonate) useCommon(c RequestCommon) {
 
 }
 

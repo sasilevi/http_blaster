@@ -6,11 +6,13 @@ import (
 	"strconv"
 )
 
+//Sample Sample
 type Sample struct {
 	T string             `json:"t"`
 	V map[string]float64 `json:"v"`
 }
 
+//IgzTSDBItem IgzTSDBItem
 type IgzTSDBItem struct {
 	Metric string `json:"metric"`
 
@@ -18,21 +20,24 @@ type IgzTSDBItem struct {
 	Samples []Sample          `json:"samples"`
 }
 
-func (ti *IgzTSDBItem) GenerateStruct(vals []string, parser *EmdSchemaParser) error {
-	ti.InsertParserMetric(vals, parser)
-	ti.InsertParserLables(vals, parser)
-	ti.InsertParserSample(vals, parser)
+func (ti *IgzTSDBItem) generateStruct(vals []string, parser *EmdSchemaParser) error {
+	ti.insertParserMetric(vals, parser)
+	ti.insertParserLables(vals, parser)
+	ti.insertParserSample(vals, parser)
 	return nil
 }
 
+//IgzTSDBItems2 IgzTSDBItems2
 type IgzTSDBItems2 struct {
 	Items []IgzTSDBItem
 }
 
+//InsertMetric InsertMetric
 func (ti *IgzTSDBItem) InsertMetric(metric string) {
 	ti.Metric = metric
 }
 
+//InsertLable InsertLable
 func (ti *IgzTSDBItem) InsertLable(key string, value string) {
 	if len(ti.Labels) == 0 {
 		ti.Labels = make(map[string]string)
@@ -40,10 +45,12 @@ func (ti *IgzTSDBItem) InsertLable(key string, value string) {
 	ti.Labels[key] = value
 }
 
+//InsertLables InsertLables
 func (ti *IgzTSDBItem) InsertLables(lables map[string]string) {
 	ti.Labels = lables
 }
 
+//InsertSample InsertSample
 func (ti *IgzTSDBItem) InsertSample(ts string, value float64) {
 	s := &Sample{}
 	s.T = ts
@@ -51,13 +58,15 @@ func (ti *IgzTSDBItem) InsertSample(ts string, value float64) {
 	ti.Samples = append(ti.Samples, *s)
 }
 
+//ToJSONString ToJSONString
 func (ti *IgzTSDBItem) ToJSONString() string {
 	body, _ := json.Marshal(ti)
 	return string(body)
 }
 
-func (ti *IgzTSDBItem) InsertParserMetric(vals []string, parser *EmdSchemaParser) {
-	parser.tsdbNameIndex = GetIndexByValue(parser.valuesMap, parser.tsdbName)
+//InsertParserMetric InsertParserMetric
+func (ti *IgzTSDBItem) insertParserMetric(vals []string, parser *EmdSchemaParser) {
+	parser.tsdbNameIndex = getIndexByValue(parser.valuesMap, parser.tsdbName)
 	input := ""
 	if parser.tsdbNameIndex > -1 {
 		input = vals[parser.tsdbNameIndex]
@@ -67,13 +76,13 @@ func (ti *IgzTSDBItem) InsertParserMetric(vals []string, parser *EmdSchemaParser
 	ti.InsertMetric(input)
 }
 
-func (ti *IgzTSDBItem) InsertParserLables(vals []string, parser *EmdSchemaParser) {
+func (ti *IgzTSDBItem) insertParserLables(vals []string, parser *EmdSchemaParser) {
 	for key, val := range parser.tsdbAttributesMap {
 		ti.InsertLable(key, vals[val])
 	}
 }
 
-func (ti *IgzTSDBItem) InsertParserSample(vals []string, parser *EmdSchemaParser) {
+func (ti *IgzTSDBItem) insertParserSample(vals []string, parser *EmdSchemaParser) {
 	for _, v := range parser.valuesMap {
 		if v.Name == parser.tsdbTime {
 			parser.tsdbTimeIndex = v.Index
@@ -88,7 +97,7 @@ func (ti *IgzTSDBItem) InsertParserSample(vals []string, parser *EmdSchemaParser
 	ti.InsertSample(ts, f)
 }
 
-func GetIndexByValue(vals map[int]SchemaValue, val string) int {
+func getIndexByValue(vals map[int]schemaValue, val string) int {
 	for _, v := range vals {
 		if v.Name == val {
 			return v.Index

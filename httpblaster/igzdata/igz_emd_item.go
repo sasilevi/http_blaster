@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//IgzType : iguazio data type
 type IgzType string
 
 // data types
@@ -26,6 +27,7 @@ const (
 	TDOUBLE            = "D"
 )
 
+//IgzEmdItem : igzEmdItem
 type IgzEmdItem struct {
 	//TableName           string
 	//ConditionExpression string
@@ -33,11 +35,13 @@ type IgzEmdItem struct {
 	Item map[string]map[string]interface{}
 }
 
+//ToJSONString : ToJSONString
 func (i *IgzEmdItem) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }
 
+//InsertKey : InsertKey
 func (i *IgzEmdItem) InsertKey(key string, valueType IgzType, value interface{}) error {
 	if _, ok := i.Key[key]; ok {
 		err := fmt.Sprintf("Key %s Override existing key %v", key, i.Key)
@@ -49,6 +53,7 @@ func (i *IgzEmdItem) InsertKey(key string, valueType IgzType, value interface{})
 	return nil
 }
 
+//InsertItemAttr :InsertItemAttr
 func (i *IgzEmdItem) InsertItemAttr(attrName string, valueType IgzType, value interface{}) error {
 	if _, ok := i.Item[attrName]; ok {
 		err := fmt.Sprintf("Key %s Override existing item %v", attrName, i.Item)
@@ -60,6 +65,7 @@ func (i *IgzEmdItem) InsertItemAttr(attrName string, valueType IgzType, value in
 	return nil
 }
 
+//NewEmdItem :New Emd Item
 func NewEmdItem() *IgzEmdItem {
 	i := &IgzEmdItem{}
 	i.Key = make(map[string]map[string]interface{})
@@ -67,6 +73,7 @@ func NewEmdItem() *IgzEmdItem {
 	return i
 }
 
+//IgzEmdItemUpdate :IgzEmdItemUpdate
 type IgzEmdItemUpdate struct {
 	//TableName           string
 	UpdateMode       string
@@ -86,28 +93,33 @@ type IgzEmdItemUpdate struct {
 //	return nil
 //}
 
+//ToJSONString :ToJSONString
 func (i *IgzEmdItemUpdate) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }
 
+//NewEmdItemUpdate :New Emd Item Update
 func NewEmdItemUpdate() *IgzEmdItemUpdate {
 	i := &IgzEmdItemUpdate{}
 	//i.Key = make(map[string]map[string]interface{})
 	return i
 }
 
+//IgzEmdItemQuery :IgzEmdItemQuery
 type IgzEmdItemQuery struct {
 	TableName       string
 	AttributesToGet string
 	Key             map[string]map[string]interface{}
 }
 
+//ToJSONString : ToJSONString
 func (i *IgzEmdItemQuery) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }
 
+//InsertKey : InsertKey
 func (i *IgzEmdItemQuery) InsertKey(key string, valueType IgzType, value interface{}) error {
 	if _, ok := i.Key[key]; ok {
 		err := fmt.Sprintf("Key %s Override existing key %v", key, i.Key)
@@ -119,12 +131,14 @@ func (i *IgzEmdItemQuery) InsertKey(key string, valueType IgzType, value interfa
 	return nil
 }
 
+//NewEmdItemQuery : New Emd Item Query
 func NewEmdItemQuery() *IgzEmdItemQuery {
 	q := &IgzEmdItemQuery{}
 	q.Key = make(map[string]map[string]interface{})
 	return q
 }
 
+//IgzEmdItemsQuery IgzEmdItemsQuery
 type IgzEmdItemsQuery struct {
 	TableName        string
 	AttributesToGet  string
@@ -137,11 +151,13 @@ type IgzEmdItemsQuery struct {
 	EndingKey        map[string]map[string]interface{}
 }
 
+//ToJSONString : ToJSONString
 func (i *IgzEmdItemsQuery) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }
 
+//InsertStartingKey : InsertStartingKey
 func (i *IgzEmdItemsQuery) InsertStartingKey(key string, valueType IgzType, value interface{}) error {
 	if _, ok := i.StartingKey[key]; ok {
 		err := fmt.Sprintf("Key %s Override existing key %v", key, i.StartingKey)
@@ -153,6 +169,7 @@ func (i *IgzEmdItemsQuery) InsertStartingKey(key string, valueType IgzType, valu
 	return nil
 }
 
+//InsertEndingKey : InsertEndingKey
 func (i *IgzEmdItemsQuery) InsertEndingKey(key string, valueType IgzType, value interface{}) error {
 	if _, ok := i.EndingKey[key]; ok {
 		err := fmt.Sprintf("Key %s Override existing key %v", key, i.EndingKey)
@@ -164,6 +181,7 @@ func (i *IgzEmdItemsQuery) InsertEndingKey(key string, valueType IgzType, value 
 	return nil
 }
 
+//NewEmdItemsQuery : NewEmdItemsQuery
 func NewEmdItemsQuery() *IgzEmdItemQuery {
 	q := &IgzEmdItemQuery{}
 	q.Key = make(map[string]map[string]interface{})

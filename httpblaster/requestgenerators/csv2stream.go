@@ -16,15 +16,17 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/igzdata"
 )
 
+//CSV2StreamGenerator : CSV2StreamGenerator generator
 type CSV2StreamGenerator struct {
 	RequestCommon
 	workload config.Workload
 }
 
-func (c *CSV2StreamGenerator) UseCommon(rc RequestCommon) {
+func (c *CSV2StreamGenerator) useCommon(rc RequestCommon) {
 
 }
 
+//Hash32 : Hash32 calc hash 32 from given string
 func (c *CSV2StreamGenerator) Hash32(line string) uint32 {
 	h := fnv.New32a()
 	h.Write([]byte(line))
@@ -87,6 +89,7 @@ func (c *CSV2StreamGenerator) generate(chReq chan *Request, payload string, host
 	log.Println("generators done")
 }
 
+//GenerateRequests : GenerateRequests impl
 func (c *CSV2StreamGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	c.workload = wl
 	if c.workload.Header == nil {

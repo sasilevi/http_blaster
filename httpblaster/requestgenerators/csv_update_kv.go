@@ -13,12 +13,13 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/igzdata"
 )
 
+//CsvUpdateKV : CsvUpdateKV generator
 type CsvUpdateKV struct {
 	workload config.Workload
 	RequestCommon
 }
 
-func (cu *CsvUpdateKV) UseCommon(c RequestCommon) {
+func (cu *CsvUpdateKV) useCommon(c RequestCommon) {
 
 }
 
@@ -94,6 +95,7 @@ func (cu *CsvUpdateKV) generate(chReq chan *Request, payload string, host string
 	wg.Wait()
 }
 
+//GenerateRequests : GenerateRequests impl
 func (cu *CsvUpdateKV) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, retCh chan *Response, workerQD int) chan *Request {
 	cu.workload = wl
 	if cu.workload.Header == nil {

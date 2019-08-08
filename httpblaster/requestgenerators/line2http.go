@@ -13,12 +13,13 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
+//Line2HttpGenerator : Line2HttpGenerator generator
 type Line2HttpGenerator struct {
 	RequestCommon
 	workload config.Workload
 }
 
-func (l *Line2HttpGenerator) UseCommon(c RequestCommon) {
+func (l *Line2HttpGenerator) useCommon(c RequestCommon) {
 
 }
 
@@ -77,6 +78,7 @@ func (l *Line2HttpGenerator) generate(chReq chan *Request, payload string, host 
 	log.Println("generators done")
 }
 
+//GenerateRequests : GenerateRequests impl
 func (l *Line2HttpGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	l.workload = wl
 	if l.workload.Header == nil {

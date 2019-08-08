@@ -13,12 +13,13 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/igzdata"
 )
 
+//Csv2TSDB : Csv2TSDB generator
 type Csv2TSDB struct {
 	workload config.Workload
 	RequestCommon
 }
 
-func (c *Csv2TSDB) UseCommon(rc RequestCommon) {
+func (c *Csv2TSDB) useCommon(rc RequestCommon) {
 
 }
 
@@ -95,6 +96,7 @@ func (c *Csv2TSDB) generate(chReq chan *Request, payload string, host string) {
 	wg.Wait()
 }
 
+//GenerateRequests : GenerateRequests impl
 func (c *Csv2TSDB) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	c.workload = wl
 	if c.workload.Header == nil {

@@ -12,12 +12,12 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
-type Schema struct {
-	Settings SchemaSettings
-	Columns  []SchemaValue
+type schema struct {
+	Settings schemaSettings
+	Columns  []schemaValue
 }
 
-type SchemaSettings struct {
+type schemaSettings struct {
 	Format       string
 	Separator    config.Sep
 	KeyFields    string
@@ -29,7 +29,7 @@ type SchemaSettings struct {
 	TSDBLables   string
 }
 
-type SchemaValue struct {
+type schemaValue struct {
 	Name     string
 	Type     IgzType
 	Index    int
@@ -39,13 +39,14 @@ type SchemaValue struct {
 	Default  string
 }
 
+//EmdSchemaParser : EmdSchemaParser
 type EmdSchemaParser struct {
 	SchemaFile         string
-	valuesMap          map[int]SchemaValue
+	valuesMap          map[int]schemaValue
 	schemaKeyIndexs    []int
 	schemaKeyFormat    string
 	schemaKeyFields    string
-	JSONSchema         Schema
+	JSONSchema         schema
 	updateFields       string
 	updateFieldsIndexs []int
 	updateMode         string
@@ -60,9 +61,10 @@ type EmdSchemaParser struct {
 	tsdbAttributesMap  map[string]int
 }
 
+//LoadSchema : LoadSchema
 func (e *EmdSchemaParser) LoadSchema(filePath, updateMode, updateExpression string) error {
 
-	e.valuesMap = make(map[int]SchemaValue)
+	e.valuesMap = make(map[int]schemaValue)
 	e.tsdbAttributesMap = make(map[string]int)
 	plan, _ := ioutil.ReadFile(filePath)
 	err := json.Unmarshal(plan, &e.JSONSchema)
@@ -84,17 +86,17 @@ func (e *EmdSchemaParser) LoadSchema(filePath, updateMode, updateExpression stri
 	for _, v := range columns {
 		e.valuesMap[v.Index] = v
 	}
-	e.GetKeyIndexes()
-	e.MapTSDBLablesIndexes()
-	e.GetTSDBNameIndex()
-	e.GetTSDBValueIndex()
+	e.getKeyIndexes()
+	e.mapTSDBLablesIndexes()
+	e.getTSDBNameIndex()
+	e.getTSDBValueIndex()
 	if len(e.updateExpression) > 0 {
-		e.GetUpdateExpressionIndexes()
+		e.getUpdateExpressionIndexes()
 	}
 	return nil
 }
 
-func (e *EmdSchemaParser) GetUpdateExpressionIndexes() {
+func (e *EmdSchemaParser) getUpdateExpressionIndexes() {
 	r := regexp.MustCompile(`\$[a-zA-Z_]+`)
 	matches := r.FindAllString(e.updateExpression, -1)
 
@@ -109,7 +111,7 @@ func (e *EmdSchemaParser) GetUpdateExpressionIndexes() {
 	}
 }
 
-func (e *EmdSchemaParser) GetKeyIndexes() {
+func (e *EmdSchemaParser) getKeyIndexes() {
 	keys := strings.Split(e.schemaKeyFields, ",")
 	for _, key := range keys {
 		for i, v := range e.valuesMap {
@@ -120,7 +122,7 @@ func (e *EmdSchemaParser) GetKeyIndexes() {
 	}
 }
 
-func (e *EmdSchemaParser) GetTSDBNameIndex() {
+func (e *EmdSchemaParser) getTSDBNameIndex() {
 	for _, v := range e.valuesMap {
 		if v.Name == e.tsdbName {
 			e.tsdbNameIndex = v.Index
@@ -128,7 +130,7 @@ func (e *EmdSchemaParser) GetTSDBNameIndex() {
 	}
 }
 
-func (e *EmdSchemaParser) GetTSDBValueIndex() {
+func (e *EmdSchemaParser) getTSDBValueIndex() {
 	for _, v := range e.valuesMap {
 		if v.Name == e.tsdbValue {
 			e.tsdbValueIndex = v.Index
@@ -136,7 +138,7 @@ func (e *EmdSchemaParser) GetTSDBValueIndex() {
 	}
 }
 
-func (e *EmdSchemaParser) MapTSDBLablesIndexes() {
+func (e *EmdSchemaParser) mapTSDBLablesIndexes() {
 	attributes := strings.Split(e.tsdbAttributes, ",")
 	for _, att := range attributes {
 		for _, v := range e.valuesMap {
@@ -147,7 +149,7 @@ func (e *EmdSchemaParser) MapTSDBLablesIndexes() {
 	}
 }
 
-func (e *EmdSchemaParser) GetFieldsIndexes(fields, delimiter string) []int {
+func (e *EmdSchemaParser) getFieldsIndexes(fields, delimiter string) []int {
 	keys := strings.Split(fields, delimiter)
 	indexArray := make([]int, 1)
 
@@ -161,6 +163,7 @@ func (e *EmdSchemaParser) GetFieldsIndexes(fields, delimiter string) []int {
 	return indexArray
 }
 
+//KeyFromCSVRecord KeyFromCSVRecord
 func (e *EmdSchemaParser) KeyFromCSVRecord(vals []string) string {
 	//when no keys, generate random
 	if len(e.schemaKeyIndexs) == 0 {
@@ -201,12 +204,13 @@ func (e *EmdSchemaParser) nameIndexFromCSVRecord(vals []string) string {
 	return key
 }
 
+//EmdFromCSVRecord EmdFromCSVRecord
 func (e *EmdSchemaParser) EmdFromCSVRecord(vals []string) string {
 	emdItem := NewEmdItem()
 	emdItem.InsertKey("key", TSTRING, e.KeyFromCSVRecord(vals))
 	for i, v := range vals {
 		if val, ok := e.valuesMap[i]; ok {
-			igzType, value, err := ConvertValue(val.Type, v)
+			igzType, value, err := convertValue(val.Type, v)
 			if err != nil {
 				panic(fmt.Sprintf("conversion error %d %v %v", i, v, e.valuesMap[i]))
 			}
@@ -216,19 +220,21 @@ func (e *EmdSchemaParser) EmdFromCSVRecord(vals []string) string {
 	return string(emdItem.ToJSONString())
 }
 
+//TSDBFromCSVRecord TSDBFromCSVRecord
 func (e *EmdSchemaParser) TSDBFromCSVRecord(vals []string) string {
 	tsdbItem := IgzTSDBItem{}
-	tsdbItem.GenerateStruct(vals, e)
+	tsdbItem.generateStruct(vals, e)
 	return string(tsdbItem.ToJSONString())
 }
 
-func (e *EmdSchemaParser) TSDBItemsFromCSVRecord(vals []string) []string {
+func (e *EmdSchemaParser) tSDBItemsFromCSVRecord(vals []string) []string {
 	tsdbItem := IgzTSDBItem{}
-	tsdbItem.GenerateStruct(vals, e)
+	tsdbItem.generateStruct(vals, e)
 	//return string(tsdbItem.ToJsonString())
 	return nil
 }
 
+//EmdUpdateFromCSVRecord EmdUpdateFromCSVRecord
 func (e *EmdSchemaParser) EmdUpdateFromCSVRecord(vals []string) string {
 	emdUpdate := NewEmdItemUpdate()
 	//emdUpdate.InsertKey("key", TSTRING, e.KeyFromCSVRecord(vals))
@@ -245,7 +251,7 @@ func (e *EmdSchemaParser) EmdUpdateFromCSVRecord(vals []string) string {
 	return string(emdUpdate.ToJSONString())
 }
 
-func (e *EmdSchemaParser) HandleJSONSource(source string) []string {
+func (e *EmdSchemaParser) handleJSONSource(source string) []string {
 	var out []string
 	arr := strings.Split(source, ".")
 	for _, a := range arr {
@@ -274,6 +280,7 @@ func handleOffset(str string) []string {
 	return res
 }
 
+//KeyFromJSONRecord KeyFromJSONRecord
 func (e *EmdSchemaParser) KeyFromJSONRecord(jsonObj []byte) string {
 	//when no keys, generate random
 	if len(e.schemaKeyIndexs) == 0 {
@@ -282,7 +289,7 @@ func (e *EmdSchemaParser) KeyFromJSONRecord(jsonObj []byte) string {
 	}
 	//when 1 key, return the key
 	if len(e.schemaKeyIndexs) == 1 {
-		sourceArr := e.HandleJSONSource(e.valuesMap[e.schemaKeyIndexs[0]].Source)
+		sourceArr := e.handleJSONSource(e.valuesMap[e.schemaKeyIndexs[0]].Source)
 		s, _, _, e := jsonparser.Get(jsonObj, sourceArr...)
 		if e != nil {
 			panic(fmt.Sprintf("%v, %+v", e, sourceArr))
@@ -293,7 +300,7 @@ func (e *EmdSchemaParser) KeyFromJSONRecord(jsonObj []byte) string {
 	var keys []interface{}
 	for _, i := range e.schemaKeyIndexs {
 		//fmt.Println("indexes ",i, len(e.valuesMap))
-		sourceArr := e.HandleJSONSource(e.valuesMap[i].Source)
+		sourceArr := e.handleJSONSource(e.valuesMap[i].Source)
 		s, _, _, e := jsonparser.Get(jsonObj, sourceArr...)
 		if e != nil {
 			panic(e)
@@ -305,11 +312,12 @@ func (e *EmdSchemaParser) KeyFromJSONRecord(jsonObj []byte) string {
 	return key
 }
 
+//EmdFromJSONRecord EmdFromJSONRecord
 func (e *EmdSchemaParser) EmdFromJSONRecord(jsonObj []byte) (string, error) {
 	emdItem := NewEmdItem()
 	emdItem.InsertKey("key", TSTRING, e.KeyFromJSONRecord(jsonObj))
 	for _, v := range e.valuesMap {
-		sourceArr := e.HandleJSONSource(v.Source)
+		sourceArr := e.handleJSONSource(v.Source)
 		var str []byte
 		var e error
 		str, _, _, e = jsonparser.Get(jsonObj, sourceArr...)
@@ -326,7 +334,7 @@ func (e *EmdSchemaParser) EmdFromJSONRecord(jsonObj []byte) (string, error) {
 				return "", fmt.Errorf("%v, %+v", e, v.Source)
 			}
 		}
-		igzType, value, err := ConvertValue(v.Type, string(str))
+		igzType, value, err := convertValue(v.Type, string(str))
 		if err != nil {
 			return "", fmt.Errorf("%v, %+v", err, v.Source)
 		}
@@ -335,7 +343,7 @@ func (e *EmdSchemaParser) EmdFromJSONRecord(jsonObj []byte) (string, error) {
 	return string(emdItem.ToJSONString()), nil
 }
 
-func ConvertValue(t IgzType, v string) (IgzType, interface{}, error) {
+func convertValue(t IgzType, v string) (IgzType, interface{}, error) {
 	switch t {
 	case TSTRING:
 		return TSTRING, v, nil

@@ -13,12 +13,13 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/igzdata"
 )
 
+//JSON2Kv : JSON2Kv generator
 type JSON2Kv struct {
 	workload config.Workload
 	RequestCommon
 }
 
-func (j *JSON2Kv) UseCommon(c RequestCommon) {
+func (j *JSON2Kv) useCommon(c RequestCommon) {
 
 }
 
@@ -82,6 +83,7 @@ func (j *JSON2Kv) generate(chReq chan *Request, payload string, host string) {
 	wg.Wait()
 }
 
+//GenerateRequests : GenerateRequests impl
 func (j *JSON2Kv) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	j.workload = wl
 	if j.workload.Header == nil {

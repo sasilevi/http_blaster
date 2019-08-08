@@ -15,12 +15,13 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/igzdata"
 )
 
+//Line2StreamGenerator : Line2StreamGenerator generator
 type Line2StreamGenerator struct {
 	RequestCommon
 	workload config.Workload
 }
 
-func (l *Line2StreamGenerator) UseCommon(c RequestCommon) {
+func (l *Line2StreamGenerator) useCommon(c RequestCommon) {
 
 }
 
@@ -82,6 +83,7 @@ func (l *Line2StreamGenerator) generate(chReq chan *Request, payload string, hos
 	log.Println("generators done")
 }
 
+//GenerateRequests : GenerateRequests impl
 func (l *Line2StreamGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	l.workload = wl
 	if l.workload.Header == nil {

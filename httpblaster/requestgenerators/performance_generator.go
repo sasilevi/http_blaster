@@ -21,7 +21,7 @@ type PerformanceGenerator struct {
 }
 
 // UseCommon : force use abs
-func (p *PerformanceGenerator) UseCommon(c RequestCommon) {
+func (p *PerformanceGenerator) useCommon(c RequestCommon) {
 
 }
 

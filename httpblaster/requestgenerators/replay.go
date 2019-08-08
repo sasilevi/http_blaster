@@ -13,12 +13,13 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
+//Replay : Replay generator
 type Replay struct {
 	workload config.Workload
 	RequestCommon
 }
 
-func (r *Replay) UseCommon(c RequestCommon) {
+func (r *Replay) useCommon(c RequestCommon) {
 
 }
 
@@ -71,6 +72,7 @@ func (r *Replay) generate(chReq chan *Request, payload string, host string) {
 	wg.Wait()
 }
 
+//GenerateRequests : GenerateRequests impl
 func (r *Replay) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	r.workload = wl
 

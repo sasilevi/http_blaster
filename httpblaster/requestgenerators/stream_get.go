@@ -16,12 +16,13 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/igzdata"
 )
 
+//StreamGetGenerator :Stream Get Generator
 type StreamGetGenerator struct {
 	RequestCommon
 	workload config.Workload
 }
 
-func (sg *StreamGetGenerator) UseCommon(c RequestCommon) {
+func (sg *StreamGetGenerator) useCommon(c RequestCommon) {
 
 }
 
@@ -80,17 +81,17 @@ func (sg *StreamGetGenerator) generate(chReq chan *Request, payload string, host
 	log.Println("generators done")
 }
 
-func (sg *StreamGetGenerator) NextLocationFromResponse(response *Response) interface{} {
+func (sg *StreamGetGenerator) nextLocationFromResponse(response *Response) interface{} {
 	return 0
 }
 
-func (sg *StreamGetGenerator) Consumer(returnCh chan *Response) chan interface{} {
+func (sg *StreamGetGenerator) consumer(returnCh chan *Response) chan interface{} {
 	chLocation := make(chan interface{}, 1000)
 	go func() {
 		for {
 			select {
 			case response := <-returnCh:
-				loc := sg.NextLocationFromResponse(response)
+				loc := sg.nextLocationFromResponse(response)
 				chLocation <- loc
 			case <-time.After(time.Second * 30):
 				log.Println("didn't get location for more then 30 seconds, exit now")
@@ -101,6 +102,7 @@ func (sg *StreamGetGenerator) Consumer(returnCh chan *Response) chan interface{}
 	return chLocation
 }
 
+//GenerateRequests : GenerateRequests impl
 func (sg *StreamGetGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	sg.workload = wl
 	if sg.workload.Header == nil {

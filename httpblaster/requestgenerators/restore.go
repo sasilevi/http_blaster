@@ -16,6 +16,7 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
+//RestoreGenerator : RestoreGenerator generator
 type RestoreGenerator struct {
 	RequestCommon
 	workload       config.Workload
@@ -32,10 +33,11 @@ type backupItem struct {
 	URI     string
 }
 
-func (r *RestoreGenerator) UseCommon(c RequestCommon) {
+func (r *RestoreGenerator) useCommon(c RequestCommon) {
 
 }
 
+// LoadSchema : load schema from file
 func (r *RestoreGenerator) LoadSchema(filePath string) (map[string]interface{}, error) {
 	type backupSchema struct {
 		records map[interface{}]interface{}
@@ -174,6 +176,7 @@ func (r *RestoreGenerator) lineReader() chan []byte {
 	return chLines
 }
 
+//GenerateRequests : GenerateRequests impl
 func (r *RestoreGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	r.workload = wl
 	chReq := make(chan *Request, workerQD)

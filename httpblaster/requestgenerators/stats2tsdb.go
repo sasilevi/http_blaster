@@ -11,12 +11,13 @@ import (
 
 var gen = datagenerator.MemoryGenerator{}
 
+//Stats2TSDB : Stats2TSDB generator
 type Stats2TSDB struct {
 	workload config.Workload
 	RequestCommon
 }
 
-func (r *Stats2TSDB) UseCommon(c RequestCommon) {
+func (r *Stats2TSDB) useCommon(c RequestCommon) {
 
 }
 
@@ -49,6 +50,7 @@ func (r *Stats2TSDB) generate(chReq chan *Request, payload string, host string, 
 	wg.Wait()
 }
 
+//GenerateRequests : GenerateRequests impl
 func (r *Stats2TSDB) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 
 	r.workload = wl

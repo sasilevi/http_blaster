@@ -43,7 +43,7 @@ func Test_igz_tsdb_item_v2_sample(t *testing.T) {
 }
 
 func Test__igz_tsdb_item_v2_convert(t *testing.T) {
-	print(item2.ToJsonString())
+	print(item2.ToJSONString())
 }
 
 func NowAsUnixMilli() string {
