@@ -5,12 +5,12 @@ import (
 )
 
 type Counter struct {
-	count     int64
-	ch_values chan int64
+	count    int64
+	chValues chan int64
 }
 
 func (sc *Counter) Add(value int64) {
-	sc.ch_values <- value
+	sc.chValues <- value
 }
 
 func (sc *Counter) GetValue() int64 {
@@ -20,16 +20,16 @@ func (sc *Counter) GetValue() int64 {
 
 func (c *Counter) start() chan int64 {
 	go func() {
-		for v := range c.ch_values {
+		for v := range c.chValues {
 			atomic.AddInt64(&c.count, v)
 		}
 	}()
-	return c.ch_values
+	return c.chValues
 }
 
 func NewCounter() *Counter {
 	counter := &Counter{
-		ch_values: make(chan int64, 5000),
+		chValues: make(chan int64, 5000),
 	}
 	counter.start()
 	return counter

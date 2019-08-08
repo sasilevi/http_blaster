@@ -10,6 +10,7 @@ import (
 
 type IgzType string
 
+// data types
 const (
 	TBLOB      IgzType = "B"
 	TBOOL              = "BOOL"
@@ -32,7 +33,7 @@ type IgzEmdItem struct {
 	Item map[string]map[string]interface{}
 }
 
-func (i *IgzEmdItem) ToJsonString() string {
+func (i *IgzEmdItem) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }
@@ -85,7 +86,7 @@ type IgzEmdItemUpdate struct {
 //	return nil
 //}
 
-func (i *IgzEmdItemUpdate) ToJsonString() string {
+func (i *IgzEmdItemUpdate) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }
@@ -102,7 +103,7 @@ type IgzEmdItemQuery struct {
 	Key             map[string]map[string]interface{}
 }
 
-func (i *IgzEmdItemQuery) ToJsonString() string {
+func (i *IgzEmdItemQuery) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }
@@ -136,7 +137,7 @@ type IgzEmdItemsQuery struct {
 	EndingKey        map[string]map[string]interface{}
 }
 
-func (i *IgzEmdItemsQuery) ToJsonString() string {
+func (i *IgzEmdItemsQuery) ToJSONString() string {
 	body, _ := json.Marshal(i)
 	return string(body)
 }

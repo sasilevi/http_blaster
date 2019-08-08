@@ -214,7 +214,7 @@ func (e *EmdSchemaParser) EmdFromCSVRecord(vals []string) string {
 			emdItem.InsertItemAttr(e.valuesMap[i].Name, igzType, value)
 		}
 	}
-	return string(emdItem.ToJsonString())
+	return string(emdItem.ToJSONString())
 }
 
 func (e *EmdSchemaParser) TSDBFromCSVRecord(vals []string) string {
@@ -243,7 +243,7 @@ func (e *EmdSchemaParser) EmdUpdateFromCSVRecord(vals []string) string {
 	} else {
 		emdUpdate.UpdateExpression = e.updateExpression
 	}
-	return string(emdUpdate.ToJsonString())
+	return string(emdUpdate.ToJSONString())
 }
 
 func (e *EmdSchemaParser) HandleJsonSource(source string) []string {
@@ -333,7 +333,7 @@ func (e *EmdSchemaParser) EmdFromJsonRecord(jsonObj []byte) (string, error) {
 		}
 		emdItem.InsertItemAttr(v.Name, igzType, value)
 	}
-	return string(emdItem.ToJsonString()), nil
+	return string(emdItem.ToJSONString()), nil
 }
 
 func ConvertValue(t IgzType, v string) (error, IgzType, interface{}) {

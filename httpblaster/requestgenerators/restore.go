@@ -18,13 +18,13 @@ import (
 
 type RestoreGenerator struct {
 	RequestCommon
-	workload         config.Workload
-	re_item          *regexp.Regexp
-	re_items         *regexp.Regexp
-	re_name          *regexp.Regexp
-	re_collection_id *regexp.Regexp
-	re_remove_items  *regexp.Regexp
-	emd_ignore_attrs []string
+	workload       config.Workload
+	reItem         *regexp.Regexp
+	reItems        *regexp.Regexp
+	reName         *regexp.Regexp
+	reCollectionID *regexp.Regexp
+	reRemoveItems  *regexp.Regexp
+	emdIgnoreAttrs []string
 }
 
 type BackupItem struct {
@@ -36,15 +36,15 @@ func (r *RestoreGenerator) UseCommon(c RequestCommon) {
 
 }
 
-func (r *RestoreGenerator) LoadSchema(file_path string) (error, map[string]interface{}) {
-	type backup_schema struct {
+func (r *RestoreGenerator) LoadSchema(filePath string) (error, map[string]interface{}) {
+	type backupSchema struct {
 		records map[interface{}]interface{}
 		inode   map[interface{}]interface{}
 		shards  []interface{}
 		dir     map[interface{}]map[interface{}]interface{}
 	}
 
-	plan, _ := ioutil.ReadFile(file_path)
+	plan, _ := ioutil.ReadFile(filePath)
 
 	var data interface{}
 	err := jsoniter.Unmarshal(plan, &data)
@@ -59,7 +59,7 @@ func (r *RestoreGenerator) LoadSchema(file_path string) (error, map[string]inter
 
 }
 
-type items_s struct {
+type itemsS struct {
 	LastItemIncluded interface{}
 	NextKey          string
 	EvaluatedItems   int
@@ -68,8 +68,8 @@ type items_s struct {
 	Items            []map[string]map[string]interface{}
 }
 
-func (r *RestoreGenerator) generateItems(ch_lines chan []byte, collection_ids map[string]interface{}) chan *BackupItem {
-	ch_items := make(chan *BackupItem, 100000)
+func (r *RestoreGenerator) generateItems(chLines chan []byte, collectionIds map[string]interface{}) chan *BackupItem {
+	chItems := make(chan *BackupItem, 100000)
 	wg := sync.WaitGroup{}
 	routines := 1 //runtime.NumCPU()/2
 	wg.Add(routines)
@@ -77,23 +77,23 @@ func (r *RestoreGenerator) generateItems(ch_lines chan []byte, collection_ids ma
 		for i := 0; i < routines; i++ {
 			go func() {
 				defer wg.Done()
-				for line := range ch_lines {
-					var items_j items_s
-					err := jsoniter.Unmarshal(line, &items_j)
+				for line := range chLines {
+					var itemsJ itemsS
+					err := jsoniter.Unmarshal(line, &itemsJ)
 					if err != nil {
 						log.Println("Unable to Unmarshal line:", string(line))
 						panic(err)
 					}
-					items := items_j.Items
+					items := itemsJ.Items
 					for _, i := range items {
-						item_name := i["__name"]["S"]
-						collection_id := i["__collection_id"]["N"]
-						dir_name := collection_ids[collection_id.(string)]
-						if dir_name == nil {
-							log.Errorf("Fail to get dir name for collection id: %v", collection_id)
+						itemName := i["__name"]["S"]
+						collectionID := i["__collectionID"]["N"]
+						dirName := collectionIds[collectionID.(string)]
+						if dirName == nil {
+							log.Errorf("Fail to get dir name for collection id: %v", collectionID)
 							continue
 						}
-						for _, attr := range r.emd_ignore_attrs {
+						for _, attr := range r.emdIgnoreAttrs {
 							delete(i, attr)
 						}
 
@@ -107,7 +107,7 @@ func (r *RestoreGenerator) generateItems(ch_lines chan []byte, collection_ids ma
 							payload.WriteString(`{"Item": `)
 							payload.Write(j)
 							payload.WriteString(`}`)
-							ch_items <- &BackupItem{Uri: r.baseURI + dir_name.(string) + item_name.(string),
+							chItems <- &BackupItem{Uri: r.baseURI + dirName.(string) + itemName.(string),
 								Payload: payload.Bytes()}
 						}
 					}
@@ -115,14 +115,14 @@ func (r *RestoreGenerator) generateItems(ch_lines chan []byte, collection_ids ma
 			}()
 		}
 		wg.Wait()
-		close(ch_items)
+		close(chItems)
 	}()
-	return ch_items
+	return chItems
 }
 
-func (r *RestoreGenerator) generate(ch_req chan *Request,
-	ch_items chan *BackupItem, host string) {
-	defer close(ch_req)
+func (r *RestoreGenerator) generate(chReq chan *Request,
+	chItems chan *BackupItem, host string) {
+	defer close(chReq)
 	wg := sync.WaitGroup{}
 
 	routines := 1 //runtime.NumCPU()
@@ -130,11 +130,11 @@ func (r *RestoreGenerator) generate(ch_req chan *Request,
 	for i := 0; i < routines; i++ {
 		go func() {
 			defer wg.Done()
-			for item := range ch_items {
+			for item := range chItems {
 				req := AcquireRequest()
 				r.PrepareRequestBytes(contentType, r.workload.Header, "PUT",
 					item.Uri, item.Payload, host, req.Request)
-				ch_req <- req
+				chReq <- req
 			}
 		}()
 	}
@@ -143,20 +143,20 @@ func (r *RestoreGenerator) generate(ch_req chan *Request,
 	log.Println("generators done")
 }
 
-func (r *RestoreGenerator) line_reader() chan []byte {
-	ch_lines := make(chan []byte, 24)
-	ch_files := r.FilesScan(r.workload.Payload)
+func (r *RestoreGenerator) lineReader() chan []byte {
+	chLines := make(chan []byte, 24)
+	chFiles := r.FilesScan(r.workload.Payload)
 	go func() {
-		for f := range ch_files {
+		for f := range chFiles {
 			if file, err := os.Open(f); err == nil {
 				reader := bufio.NewReader(file)
-				var i int = 0
+				var i = 0
 				for {
-					line, line_err := reader.ReadBytes('\n')
-					if line_err == nil {
-						ch_lines <- line
+					line, lineErr := reader.ReadBytes('\n')
+					if lineErr == nil {
+						chLines <- line
 						i++
-					} else if line_err == io.EOF {
+					} else if lineErr == io.EOF {
 						break
 					} else {
 						log.Fatal(err)
@@ -168,36 +168,36 @@ func (r *RestoreGenerator) line_reader() chan []byte {
 				panic(err)
 			}
 		}
-		close(ch_lines)
+		close(chLines)
 	}()
 	log.Println("finish line generation")
-	return ch_lines
+	return chLines
 }
 
-func (r *RestoreGenerator) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
+func (r *RestoreGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	r.workload = wl
-	ch_req := make(chan *Request, worker_qd)
+	chReq := make(chan *Request, workerQD)
 
 	if r.workload.Header == nil {
 		r.workload.Header = make(map[string]string)
 	}
-	r.emd_ignore_attrs = global.IgnoreAttrs
+	r.emdIgnoreAttrs = global.IgnoreAttrs
 
 	r.workload.Header["X-v3io-function"] = "PutItem"
 
-	r.SetBaseUri(tls_mode, host, r.workload.Container, r.workload.Target)
+	r.SetBaseUri(TLSMode, host, r.workload.Container, r.workload.Target)
 
-	err, inode_map := r.LoadSchema(wl.Schema)
+	err, inodeMap := r.LoadSchema(wl.Schema)
 
 	if err != nil {
 		panic(err)
 	}
 
-	ch_lines := r.line_reader()
+	chLines := r.lineReader()
 
-	ch_items := r.generateItems(ch_lines, inode_map)
+	chItems := r.generateItems(chLines, inodeMap)
 
-	go r.generate(ch_req, ch_items, host)
+	go r.generate(chReq, chItems, host)
 
-	return ch_req
+	return chReq
 }

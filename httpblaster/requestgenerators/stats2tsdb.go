@@ -20,36 +20,36 @@ func (r *Stats2TSDB) UseCommon(c RequestCommon) {
 
 }
 
-func (r *Stats2TSDB) generateRequest(ch_records chan []string, ch_req chan *Request, host string,
+func (r *Stats2TSDB) generateRequest(chRecords chan []string, chReq chan *Request, host string,
 	wg *sync.WaitGroup, cpuNumber int, wl config.Workload) {
 	defer wg.Done()
 	for i := 0; i < wl.Count; i++ {
 
-		var contentType string = "text/html"
-		json_payload := gen.GenerateRandomData(strconv.FormatInt(int64(i), 10))
-		for _, payload := range json_payload {
+		var contentType = "text/html"
+		JSONPayload := gen.GenerateRandomData(strconv.FormatInt(int64(i), 10))
+		for _, payload := range JSONPayload {
 			req := AcquireRequest()
 			r.PrepareRequest(contentType, r.workload.Header, "PUT",
 				r.baseURI, payload, host, req.Request)
-			ch_req <- req
+			chReq <- req
 		}
 	}
 }
 
-func (r *Stats2TSDB) generate(ch_req chan *Request, payload string, host string, wl config.Workload) {
-	defer close(ch_req)
-	var ch_records chan []string = make(chan []string, 1000)
+func (r *Stats2TSDB) generate(chReq chan *Request, payload string, host string, wl config.Workload) {
+	defer close(chReq)
+	var chRecords = make(chan []string, 1000)
 	wg := sync.WaitGroup{}
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
-		go r.generateRequest(ch_records, ch_req, host, &wg, c, wl)
+		go r.generateRequest(chRecords, chReq, host, &wg, c, wl)
 	}
 
-	close(ch_records)
+	close(chRecords)
 	wg.Wait()
 }
 
-func (r *Stats2TSDB) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
+func (r *Stats2TSDB) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 
 	r.workload = wl
 
@@ -58,11 +58,11 @@ func (r *Stats2TSDB) GenerateRequests(global config.Global, wl config.Workload, 
 	}
 	r.workload.Header["X-v3io-function"] = "PutItem"
 
-	r.SetBaseUri(tls_mode, host, r.workload.Container, r.workload.Target)
+	r.SetBaseUri(TLSMode, host, r.workload.Container, r.workload.Target)
 
-	ch_req := make(chan *Request, worker_qd)
+	chReq := make(chan *Request, workerQD)
 
-	go r.generate(ch_req, r.workload.Payload, host, wl)
+	go r.generate(chReq, r.workload.Payload, host, wl)
 
-	return ch_req
+	return chReq
 }

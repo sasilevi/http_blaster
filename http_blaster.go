@@ -472,7 +472,7 @@ func enableTUI() chan struct{} {
 		termUI = &tui.TermUI{}
 		chDone := termUI.InitTerminamlUI(&cfg)
 		go func() {
-			defer termUI.Terminate_ui()
+			defer termUI.TerminateUI()
 			tick := time.Tick(time.Millisecond * 500)
 			for {
 				select {
@@ -482,7 +482,7 @@ func enableTUI() chan struct{} {
 					//termUI.Update_put_latency_chart(LatencyCollectorPut.Get())
 					//termUI.Update_get_latency_chart(LatencyCollectorGet.Get())
 					//termUI.Update_status_codes(StatusesCollector.Get())
-					termUI.Refresh_log()
+					termUI.RefreshLog()
 					termUI.Render()
 				}
 			}

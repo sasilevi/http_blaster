@@ -24,45 +24,45 @@ func (l *Line2StreamGenerator) UseCommon(c RequestCommon) {
 
 }
 
-func (l *Line2StreamGenerator) generateRequest(ch_records chan string,
-	ch_req chan *Request,
+func (l *Line2StreamGenerator) generateRequest(chRecords chan string,
+	chReq chan *Request,
 	host string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	var contentType string = "application/json"
+	var contentType = "application/json"
 	u, _ := uuid.NewV4()
-	for r := range ch_records {
+	for r := range chRecords {
 		sr := igzdata.NewStreamRecord("client", r, u.String(), 0, true)
 		r := igzdata.NewStreamRecords(sr)
 		req := AcquireRequest()
 		l.PrepareRequest(contentType, l.workload.Header, "PUT",
 			l.baseURI, r.ToJsonString(), host, req.Request)
-		ch_req <- req
+		chReq <- req
 	}
 	log.Println("generateRequest Done")
 }
 
-func (l *Line2StreamGenerator) generate(ch_req chan *Request, payload string, host string) {
-	defer close(ch_req)
-	var ch_records chan string = make(chan string, 10000)
+func (l *Line2StreamGenerator) generate(chReq chan *Request, payload string, host string) {
+	defer close(chReq)
+	var chRecords = make(chan string, 10000)
 	wg := sync.WaitGroup{}
-	ch_files := l.FilesScan(l.workload.Payload)
+	chFiles := l.FilesScan(l.workload.Payload)
 
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
-		go l.generateRequest(ch_records, ch_req, host, &wg)
+		go l.generateRequest(chRecords, chReq, host, &wg)
 	}
 
-	for f := range ch_files {
+	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
 			reader := bufio.NewReader(file)
-			var line_count int = 0
+			var lineCount int = 0
 			for {
 				line, err := reader.ReadString('\n')
 				if err == nil {
-					ch_records <- strings.TrimSpace(line)
-					line_count++
-					if line_count%1024 == 0 {
-						log.Printf("line: %d from file %s was submitted", line_count, f)
+					chRecords <- strings.TrimSpace(line)
+					lineCount++
+					if lineCount%1024 == 0 {
+						log.Printf("line: %d from file %s was submitted", lineCount, f)
 					}
 				} else if err == io.EOF {
 					break
@@ -71,29 +71,29 @@ func (l *Line2StreamGenerator) generate(ch_req chan *Request, payload string, ho
 				}
 			}
 
-			log.Println(fmt.Sprintf("Finish file scaning, generated %d records", line_count))
+			log.Println(fmt.Sprintf("Finish file scaning, generated %d records", lineCount))
 		} else {
 			panic(err)
 		}
 	}
-	close(ch_records)
+	close(chRecords)
 	log.Println("Waiting for generators to finish")
 	wg.Wait()
 	log.Println("generators done")
 }
 
-func (l *Line2StreamGenerator) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
+func (l *Line2StreamGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	l.workload = wl
 	if l.workload.Header == nil {
 		l.workload.Header = make(map[string]string)
 	}
 	l.workload.Header["X-v3io-function"] = "PutRecords"
 
-	l.SetBaseUri(tls_mode, host, l.workload.Container, l.workload.Target)
+	l.SetBaseUri(TLSMode, host, l.workload.Container, l.workload.Target)
 
-	ch_req := make(chan *Request, worker_qd)
+	chReq := make(chan *Request, workerQD)
 
-	go l.generate(ch_req, l.workload.Payload, host)
+	go l.generate(chReq, l.workload.Payload, host)
 
-	return ch_req
+	return chReq
 }

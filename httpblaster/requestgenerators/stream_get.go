@@ -25,42 +25,42 @@ func (sg *StreamGetGenerator) UseCommon(c RequestCommon) {
 
 }
 
-func (sg *StreamGetGenerator) generateRequest(ch_records chan string,
-	ch_req chan *Request,
+func (sg *StreamGetGenerator) generateRequest(chRecords chan string,
+	chReq chan *Request,
 	host string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var contentType string = "application/json"
 	u, _ := uuid.NewV4()
-	for r := range ch_records {
+	for r := range chRecords {
 		sr := igzdata.NewStreamRecord("client", r, u.String(), 0, true)
 		r := igzdata.NewStreamRecords(sr)
 		req := AcquireRequest()
 		sg.PrepareRequest(contentType, sg.workload.Header, "PUT",
 			sg.baseURI, r.ToJsonString(), host, req.Request)
-		ch_req <- req
+		chReq <- req
 	}
 	log.Println("generateRequest Done")
 }
 
-func (sg *StreamGetGenerator) generate(ch_req chan *Request, payload string, host string) {
-	defer close(ch_req)
-	var ch_records chan string = make(chan string)
+func (sg *StreamGetGenerator) generate(chReq chan *Request, payload string, host string) {
+	defer close(chReq)
+	var chRecords chan string = make(chan string)
 	wg := sync.WaitGroup{}
-	ch_files := sg.FilesScan(sg.workload.Payload)
+	chFiles := sg.FilesScan(sg.workload.Payload)
 
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
-		go sg.generateRequest(ch_records, ch_req, host, &wg)
+		go sg.generateRequest(chRecords, chReq, host, &wg)
 	}
 
-	for f := range ch_files {
+	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
 			reader := bufio.NewReader(file)
 			var i int
 			for {
 				line, err := reader.ReadString('\n')
 				if err == nil {
-					ch_records <- strings.TrimSpace(line)
+					chRecords <- strings.TrimSpace(line)
 					i++
 				} else if err == io.EOF {
 					break
@@ -74,7 +74,7 @@ func (sg *StreamGetGenerator) generate(ch_req chan *Request, payload string, hos
 			panic(err)
 		}
 	}
-	close(ch_records)
+	close(chRecords)
 	log.Println("Waiting for generators to finish")
 	wg.Wait()
 	log.Println("generators done")
@@ -84,35 +84,35 @@ func (sg *StreamGetGenerator) NextLocationFromResponse(response *Response) inter
 	return 0
 }
 
-func (sg *StreamGetGenerator) Consumer(return_ch chan *Response) chan interface{} {
-	ch_location := make(chan interface{}, 1000)
+func (sg *StreamGetGenerator) Consumer(returnCh chan *Response) chan interface{} {
+	chLocation := make(chan interface{}, 1000)
 	go func() {
 		for {
 			select {
-			case response := <-return_ch:
+			case response := <-returnCh:
 				loc := sg.NextLocationFromResponse(response)
-				ch_location <- loc
+				chLocation <- loc
 			case <-time.After(time.Second * 30):
 				log.Println("didn't get location for more then 30 seconds, exit now")
 				return
 			}
 		}
 	}()
-	return ch_location
+	return chLocation
 }
 
-func (sg *StreamGetGenerator) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
+func (sg *StreamGetGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	sg.workload = wl
 	if sg.workload.Header == nil {
 		sg.workload.Header = make(map[string]string)
 	}
 	sg.workload.Header["X-v3io-function"] = "PutRecords"
 
-	sg.SetBaseUri(tls_mode, host, sg.workload.Container, sg.workload.Target)
+	sg.SetBaseUri(TLSMode, host, sg.workload.Container, sg.workload.Target)
 
-	ch_req := make(chan *Request, worker_qd)
+	chReq := make(chan *Request, workerQD)
 
-	go sg.generate(ch_req, sg.workload.Payload, host)
+	go sg.generate(chReq, sg.workload.Payload, host)
 
-	return ch_req
+	return chReq
 }

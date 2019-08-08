@@ -244,7 +244,7 @@ LOOP:
 						getReqCount += wresults.Count
 					}
 				}
-				ex.TermUI.Update_requests(time.Now().Sub(ex.StartTime), putReqCount, getReqCount)
+				ex.TermUI.UpdateRequests(time.Now().Sub(ex.StartTime), putReqCount, getReqCount)
 			}
 		}
 	}

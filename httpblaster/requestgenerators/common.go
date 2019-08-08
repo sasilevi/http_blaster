@@ -10,6 +10,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// generators type
 const (
 	PERFORMANCE = "performance"
 	LINE2STREAM = "line2stream"

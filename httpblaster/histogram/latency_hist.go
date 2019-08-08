@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// LatencyHist : LatencyHist obj
 type LatencyHist struct {
 	chValues chan time.Duration
 	hist     map[int64]int
@@ -17,11 +18,13 @@ type LatencyHist struct {
 	wg       sync.WaitGroup
 }
 
+// Add : add value to hist
 func (l *LatencyHist) Add(v time.Duration) {
 	l.chValues <- v
 	l.size++
 }
 
+// Close : close hist ch
 func (l *LatencyHist) Close() {
 	close(l.chValues)
 }
@@ -30,6 +33,7 @@ func (l *LatencyHist) place(v int64) {
 	l.hist[v/100]++
 }
 
+// New : return new hist obj
 func (l *LatencyHist) New() chan time.Duration {
 	l.hist = make(map[int64]int)
 	l.wg.Add(1)
@@ -46,6 +50,7 @@ func (l *LatencyHist) New() chan time.Duration {
 	return l.chValues
 }
 
+//GetResults : get hist results
 func (l *LatencyHist) GetResults() ([]string, []float64) {
 	log.Debugln("get latency hist")
 	l.wg.Wait()
@@ -66,6 +71,7 @@ func (l *LatencyHist) GetResults() ([]string, []float64) {
 	return resStrings, resValues
 }
 
+// GetHistMap : get hist map
 func (l *LatencyHist) GetHistMap() map[int64]int {
 	l.wg.Wait()
 	return l.hist
