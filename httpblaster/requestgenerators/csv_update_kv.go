@@ -35,7 +35,7 @@ func (cu *CsvUpdateKV) generateRequest(chRecords chan []string, chReq chan *Requ
 		JSONPayload := parser.EmdUpdateFromCSVRecord(r)
 		key := parser.KeyFromCSVRecord(r)
 		req := AcquireRequest()
-		cu.PrepareRequest(contentType, cu.workload.Header, "POST",
+		cu.prepareRequest(contentType, cu.workload.Header, "POST",
 			cu.baseURI+key, JSONPayload, host, req.Request)
 		//panic(fmt.Sprintf("%+v", req))
 		chReq <- req
@@ -57,7 +57,7 @@ func (cu *CsvUpdateKV) generate(chReq chan *Request, payload string, host string
 		go cu.generateRequest(chRecords, chReq, host, &wg)
 	}
 
-	chFiles := cu.FilesScan(cu.workload.Payload)
+	chFiles := cu.filesScan(cu.workload.Payload)
 
 	for f := range chFiles {
 		fp, err := os.Open(f)
@@ -101,7 +101,7 @@ func (cu *CsvUpdateKV) GenerateRequests(global config.Global, wl config.Workload
 	}
 	cu.workload.Header["X-v3io-function"] = "UpdateItem"
 
-	cu.SetBaseURI(TLSMode, host, cu.workload.Container, cu.workload.Target)
+	cu.setBaseURI(TLSMode, host, cu.workload.Container, cu.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

@@ -263,6 +263,7 @@ func (t *TermUI) uiPutIops(x, y, w, h int) *ui.LineChart {
 	return lc2
 }
 
+//UpdateRequests : update the put/get bar chars
 func (t *TermUI) UpdateRequests(duration time.Duration, putCount, getCount uint64) {
 
 	seconds := uint64(duration.Seconds())
@@ -282,30 +283,35 @@ func (t *TermUI) UpdateRequests(duration time.Duration, putCount, getCount uint6
 
 }
 
+//RefreshLog : Refresh Log
 func (t *TermUI) RefreshLog() {
 	t.widgetLogs.Items = t.logsFifo.Get()
 	ui.Render(t.widgetLogs)
 }
 
+//UpdateStatusCodes : Update Status Codes bar
 func (t *TermUI) UpdateStatusCodes(labels []string, values []int) {
 	t.widgetRequestBarChart.Data = values
 	t.widgetRequestBarChart.DataLabels = labels
 }
 
+//UpdatePutLatencyChart :Update Put Latency Chart
 func (t *TermUI) UpdatePutLatencyChart(labels []string, values []int) {
 	t.widgetPutLatency.Data = values
 	t.widgetPutLatency.DataLabels = labels
 }
 
+//UpdateGetLatencyChart :Update Get Latency Chart
 func (t *TermUI) UpdateGetLatencyChart(labels []string, values []int) {
 	t.widgetGetLatency.Data = values
 	t.widgetGetLatency.DataLabels = labels
 }
 
-func Percentage(value, total int) int {
+func percentage(value, total int) int {
 	return value * total / 100
 }
 
+//InitTerminamlUI : init ui
 func (t *TermUI) InitTerminamlUI(cfg *config.TomlConfig) chan struct{} {
 	t.cfg = cfg
 	t.chDone = make(chan struct{})
@@ -322,15 +328,15 @@ func (t *TermUI) InitTerminamlUI(cfg *config.TomlConfig) chan struct{} {
 	}
 	termHight := ui.TermHeight()
 
-	t.widgetTitle = t.uiSetTitle(0, 0, 50, Percentage(7, termHight))
+	t.widgetTitle = t.uiSetTitle(0, 0, 50, percentage(7, termHight))
 	t.widgetServerInfo = t.uiSetServersInfo(0, 0, 0, 0)
 	t.widgetSysInfo = t.uiSetSystemInfo(0, 0, 0, t.widgetServerInfo.GetHeight())
-	t.widgetPutIopsChart = t.uiPutIops(0, 0, 0, Percentage(30, termHight))
-	t.widgetGetIopsChart = t.uiGetIops(0, 0, 0, Percentage(30, termHight))
-	t.widgetPutLatency = t.uiSetPutLatencyBarChart(0, 0, 0, Percentage(30, termHight))
-	t.widgetGetLatency = t.uiSetGetLatencyBarChart(0, 0, 0, Percentage(30, termHight))
-	t.widgetRequestBarChart = t.uiSetRequestsBarChart(0, 0, 0, Percentage(20, termHight))
-	t.widgetLogs = t.uiSetLogList(0, 0, 0, Percentage(20, termHight))
+	t.widgetPutIopsChart = t.uiPutIops(0, 0, 0, percentage(30, termHight))
+	t.widgetGetIopsChart = t.uiGetIops(0, 0, 0, percentage(30, termHight))
+	t.widgetPutLatency = t.uiSetPutLatencyBarChart(0, 0, 0, percentage(30, termHight))
+	t.widgetGetLatency = t.uiSetGetLatencyBarChart(0, 0, 0, percentage(30, termHight))
+	t.widgetRequestBarChart = t.uiSetRequestsBarChart(0, 0, 0, percentage(20, termHight))
+	t.widgetLogs = t.uiSetLogList(0, 0, 0, percentage(20, termHight))
 
 	ui.Body.AddRows(
 		ui.NewRow(
@@ -360,15 +366,18 @@ func (t *TermUI) InitTerminamlUI(cfg *config.TomlConfig) chan struct{} {
 	return t.chDone
 }
 
+//Render : Render
 func (t *TermUI) Render() {
 	ui.Render(ui.Body)
 }
 
+//TerminateUI : Terminate UI
 func (t *TermUI) TerminateUI() {
 	ui.StopLoop()
 	ui.Close()
 }
 
+//Write :Write
 func (t *TermUI) Write(p []byte) (n int, err error) {
 	if p == nil {
 		return 0, nil

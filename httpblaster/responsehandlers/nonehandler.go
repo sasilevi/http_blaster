@@ -19,10 +19,12 @@ func (r *NoneHandler) Report() string {
 	return ""
 }
 
+//Counters : not implimented
 func (r *NoneHandler) Counters() map[string]int64 {
 	return nil
 }
 
+//Error : not implimented
 func (r *NoneHandler) Error() error {
 	return nil
 }

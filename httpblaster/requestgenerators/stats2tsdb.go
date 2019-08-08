@@ -29,7 +29,7 @@ func (r *Stats2TSDB) generateRequest(chRecords chan []string, chReq chan *Reques
 		JSONPayload := gen.GenerateRandomData(strconv.FormatInt(int64(i), 10))
 		for _, payload := range JSONPayload {
 			req := AcquireRequest()
-			r.PrepareRequest(contentType, r.workload.Header, "PUT",
+			r.prepareRequest(contentType, r.workload.Header, "PUT",
 				r.baseURI, payload, host, req.Request)
 			chReq <- req
 		}
@@ -58,7 +58,7 @@ func (r *Stats2TSDB) GenerateRequests(global config.Global, wl config.Workload, 
 	}
 	r.workload.Header["X-v3io-function"] = "PutItem"
 
-	r.SetBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
+	r.setBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

@@ -34,7 +34,7 @@ func (l *Line2StreamGenerator) generateRequest(chRecords chan string,
 		sr := igzdata.NewStreamRecord("client", r, u.String(), 0, true)
 		r := igzdata.NewStreamRecords(sr)
 		req := AcquireRequest()
-		l.PrepareRequest(contentType, l.workload.Header, "PUT",
+		l.prepareRequest(contentType, l.workload.Header, "PUT",
 			l.baseURI, r.ToJSONString(), host, req.Request)
 		chReq <- req
 	}
@@ -45,7 +45,7 @@ func (l *Line2StreamGenerator) generate(chReq chan *Request, payload string, hos
 	defer close(chReq)
 	var chRecords = make(chan string, 10000)
 	wg := sync.WaitGroup{}
-	chFiles := l.FilesScan(l.workload.Payload)
+	chFiles := l.filesScan(l.workload.Payload)
 
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
@@ -89,7 +89,7 @@ func (l *Line2StreamGenerator) GenerateRequests(global config.Global, wl config.
 	}
 	l.workload.Header["X-v3io-function"] = "PutRecords"
 
-	l.SetBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
+	l.setBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

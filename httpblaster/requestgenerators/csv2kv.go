@@ -34,7 +34,7 @@ func (c *Csv2KV) generateRequest(chRecords chan []string, chReq chan *Request, h
 	for r := range chRecords {
 		JSONpayload := parser.EmdFromCSVRecord(r)
 		req := AcquireRequest()
-		c.PrepareRequest(contentType, c.workload.Header, "PUT",
+		c.prepareRequest(contentType, c.workload.Header, "PUT",
 			c.baseURI, JSONpayload, host, req.Request)
 		chReq <- req
 	}
@@ -55,7 +55,7 @@ func (c *Csv2KV) generate(chReq chan *Request, payload string, host string) {
 		go c.generateRequest(chRecords, chReq, host, &wg)
 	}
 
-	chFiles := c.FilesScan(c.workload.Payload)
+	chFiles := c.filesScan(c.workload.Payload)
 
 	for f := range chFiles {
 		fp, err := os.Open(f)
@@ -99,7 +99,7 @@ func (c *Csv2KV) GenerateRequests(global config.Global, wl config.Workload, TLSM
 	}
 	c.workload.Header["X-v3io-function"] = "PutItem"
 
-	c.SetBaseURI(TLSMode, host, c.workload.Container, c.workload.Target)
+	c.setBaseURI(TLSMode, host, c.workload.Container, c.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

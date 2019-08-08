@@ -29,6 +29,7 @@ const (
 	IMPERSONATE = "impersonate"
 )
 
+//RequestCommon : commom reqest generator code
 type RequestCommon struct {
 	chFiles chan string
 	baseURI string
@@ -38,7 +39,7 @@ var (
 	contentType = "application/json"
 )
 
-func (r *RequestCommon) PrepareRequest(contentType string,
+func (r *RequestCommon) prepareRequest(contentType string,
 	headerArgs map[string]string,
 	method string, uri string,
 	body string, host string, req *fasthttp.Request) {
@@ -53,7 +54,7 @@ func (r *RequestCommon) PrepareRequest(contentType string,
 	req.AppendBodyString(body)
 }
 
-func (r *RequestCommon) PrepareRequestBytes(contentType string,
+func (r *RequestCommon) prepareRequestBytes(contentType string,
 	headerArgs map[string]string,
 	method string, uri string,
 	body []byte, host string, req *fasthttp.Request) {
@@ -68,7 +69,7 @@ func (r *RequestCommon) PrepareRequestBytes(contentType string,
 	req.AppendBody(body)
 }
 
-func (r *RequestCommon) SubmitFiles(path string, info os.FileInfo, err error) error {
+func (r *RequestCommon) submitFiles(path string, info os.FileInfo, err error) error {
 	log.Print(path)
 	if err != nil {
 		log.Print(err)
@@ -81,10 +82,10 @@ func (r *RequestCommon) SubmitFiles(path string, info os.FileInfo, err error) er
 	return nil
 }
 
-func (r *RequestCommon) FilesScan(path string) chan string {
+func (r *RequestCommon) filesScan(path string) chan string {
 	r.chFiles = make(chan string)
 	go func() {
-		err := filepath.Walk(path, r.SubmitFiles)
+		err := filepath.Walk(path, r.submitFiles)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -93,7 +94,7 @@ func (r *RequestCommon) FilesScan(path string) chan string {
 	return r.chFiles
 }
 
-func (r *RequestCommon) SetBaseURI(TLSMode bool, host string, container string, target string) {
+func (r *RequestCommon) setBaseURI(TLSMode bool, host string, container string, target string) {
 	http := "http"
 	if TLSMode {
 		http += "s"
@@ -110,7 +111,7 @@ func (r *RequestCommon) SetBaseURI(TLSMode bool, host string, container string, 
 	}
 }
 
-func (r *RequestCommon) GetURI(target string, params string) string {
+func (r *RequestCommon) getURI(target string, params string) string {
 	if len(target) > 0 {
 		u := url.URL{Path: fmt.Sprintf("%s/%s", r.baseURI, target)}
 		return u.EscapedPath() + params

@@ -42,7 +42,7 @@ func (c *CSV2StreamGenerator) generateRequest(chRecords chan string,
 		sr := igzdata.NewStreamRecord("client", r, u.String(), int(shardID), true)
 		r := igzdata.NewStreamRecords(sr)
 		req := AcquireRequest()
-		c.PrepareRequest(contentType, c.workload.Header, "PUT",
+		c.prepareRequest(contentType, c.workload.Header, "PUT",
 			c.baseURI, r.ToJSONString(), host, req.Request)
 		chReq <- req
 	}
@@ -53,7 +53,7 @@ func (c *CSV2StreamGenerator) generate(chReq chan *Request, payload string, host
 	defer close(chReq)
 	var chRecords = make(chan string)
 	wg := sync.WaitGroup{}
-	chFiles := c.FilesScan(c.workload.Payload)
+	chFiles := c.filesScan(c.workload.Payload)
 
 	wg.Add(runtime.NumCPU())
 	for cpu := 0; cpu < runtime.NumCPU(); cpu++ {
@@ -94,7 +94,7 @@ func (c *CSV2StreamGenerator) GenerateRequests(global config.Global, wl config.W
 	}
 	c.workload.Header["X-v3io-function"] = "PutRecords"
 
-	c.SetBaseURI(TLSMode, host, c.workload.Container, c.workload.Target)
+	c.setBaseURI(TLSMode, host, c.workload.Container, c.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

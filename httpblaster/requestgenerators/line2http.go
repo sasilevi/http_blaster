@@ -29,7 +29,7 @@ func (l *Line2HttpGenerator) generateRequest(chLines chan string,
 	var contentType = "application/text"
 	for r := range chLines {
 		req := AcquireRequest()
-		l.PrepareRequest(contentType, l.workload.Header, "PUT",
+		l.prepareRequest(contentType, l.workload.Header, "PUT",
 			l.baseURI, r, host, req.Request)
 		chReq <- req
 	}
@@ -40,7 +40,7 @@ func (l *Line2HttpGenerator) generate(chReq chan *Request, payload string, host 
 	defer close(chReq)
 	chLines := make(chan string, 10000)
 	wg := sync.WaitGroup{}
-	chFiles := l.FilesScan(l.workload.Payload)
+	chFiles := l.filesScan(l.workload.Payload)
 
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
@@ -84,7 +84,7 @@ func (l *Line2HttpGenerator) GenerateRequests(global config.Global, wl config.Wo
 	}
 	//l.workload.Header["X-v3io-function"] = "PutRecords"
 
-	l.SetBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
+	l.setBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

@@ -28,7 +28,7 @@ func (l *Line2KvGenerator) generateRequest(chRecords chan []string,
 	defer wg.Done()
 	for r := range chRecords {
 		req := AcquireRequest()
-		l.PrepareRequest(contentType, l.workload.Header, "PUT",
+		l.prepareRequest(contentType, l.workload.Header, "PUT",
 			r[0], r[1], host, req.Request)
 		chReq <- req
 	}
@@ -39,7 +39,7 @@ func (l *Line2KvGenerator) generate(chReq chan *Request, payload string, host st
 	defer close(chReq)
 	var chRecords = make(chan []string)
 	wg := sync.WaitGroup{}
-	chFiles := l.FilesScan(l.workload.Payload)
+	chFiles := l.filesScan(l.workload.Payload)
 
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
@@ -82,7 +82,7 @@ func (l *Line2KvGenerator) GenerateRequests(global config.Global, wl config.Work
 	}
 	l.workload.Header["X-v3io-function"] = "PutItem"
 
-	l.SetBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
+	l.setBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

@@ -86,16 +86,16 @@ func (ol *Onelink) GenerateRequests(global config.Global, wl config.Workload, tl
 	ol.workload = wl
 	ol.Host = host
 	if len(ol.workload.Targets) > 0 {
-		ol.SetBaseURI(tlsMode, host, "", "")
+		ol.setBaseURI(tlsMode, host, "", "")
 	} else {
-		ol.SetBaseURI(tlsMode, host, ol.workload.Container, ol.workload.Target)
+		ol.setBaseURI(tlsMode, host, ol.workload.Container, ol.workload.Target)
 	}
 
 	var contentType = "text/html"
 	var payload []byte
 
 	req := AcquireRequest()
-	ol.PrepareRequest(contentType, ol.workload.Header, string(ol.workload.Type),
+	ol.prepareRequest(contentType, ol.workload.Header, string(ol.workload.Type),
 		ol.baseURI, string(payload), host, req.Request)
 
 	done := make(chan struct{})
@@ -129,7 +129,7 @@ LOOP:
 				ua := userAgent.(string)
 				request := AcquireRequest()
 				request.Request.SetHost(ol.Host)
-				request.Request.SetRequestURI(ol.GetURI(k, ""))
+				request.Request.SetRequestURI(ol.getURI(k, ""))
 				request.Request.Header.Set("User-Agent", ua)
 				request.Cookie = dto.AcquireUaObj(ua, k)
 				chReq <- request

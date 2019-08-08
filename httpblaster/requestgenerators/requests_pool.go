@@ -7,6 +7,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//Request : blaster request obj
 type Request struct {
 	Cookie                   interface{}
 	ID                       int
@@ -15,6 +16,7 @@ type Request struct {
 	ExpectedConnectionStatus bool
 }
 
+//Response : blaster Response obj
 type Response struct {
 	Cookie     interface{}
 	ID         int
@@ -30,6 +32,7 @@ var (
 	ids          int
 )
 
+//AcquireRequest : get request from pool
 func AcquireRequest() *Request {
 	v := requestPool.Get()
 	if v == nil {
@@ -39,12 +42,14 @@ func AcquireRequest() *Request {
 	return v.(*Request)
 }
 
+//ReleaseRequest : release request back to pool
 func ReleaseRequest(req *Request) {
 	req.Request.Reset()
 	req.Cookie = nil
 	requestPool.Put(req)
 }
 
+//AcquireResponse : get response object from pool
 func AcquireResponse() *Response {
 	v := responsePool.Get()
 	if v == nil {
@@ -53,6 +58,7 @@ func AcquireResponse() *Response {
 	return v.(*Response)
 }
 
+//ReleaseResponse : release response obj back to pool
 func ReleaseResponse(resp *Response) {
 	resp.Response.Reset()
 	responsePool.Put(resp)

@@ -30,7 +30,7 @@ func (r *Replay) generateRequest(chRecords chan []byte, chReq chan *Request, hos
 		json.Unmarshal(rec, reqDump)
 
 		req := AcquireRequest()
-		r.PrepareRequest(contentType, reqDump.Headers,
+		r.prepareRequest(contentType, reqDump.Headers,
 			reqDump.Method,
 			reqDump.URI,
 			reqDump.Body,
@@ -50,7 +50,7 @@ func (r *Replay) generate(chReq chan *Request, payload string, host string) {
 		go r.generateRequest(chRecords, chReq, host, &wg)
 	}
 	rCount := 0
-	chFiles := r.FilesScan(r.workload.Payload)
+	chFiles := r.filesScan(r.workload.Payload)
 
 	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
@@ -76,7 +76,7 @@ func (r *Replay) GenerateRequests(global config.Global, wl config.Workload, TLSM
 
 	chReq := make(chan *Request, workerQD)
 
-	r.SetBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
+	r.setBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
 
 	go r.generate(chReq, r.workload.Payload, host)
 

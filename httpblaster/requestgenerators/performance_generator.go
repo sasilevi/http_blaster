@@ -29,7 +29,7 @@ func (p *PerformanceGenerator) UseCommon(c RequestCommon) {
 func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, retCh chan *Response, workerQD int) chan *Request {
 	p.workload = wl
 	p.Host = host
-	p.SetBaseURI(TLSMode, host, p.workload.Container, p.workload.Target)
+	p.setBaseURI(TLSMode, host, p.workload.Container, p.workload.Target)
 	contentType := "text/html"
 	var payload []byte
 	var DataBfr []byte
@@ -51,7 +51,7 @@ func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.
 		}
 	}
 	req := AcquireRequest()
-	p.PrepareRequest(contentType, p.workload.Header, string(p.workload.Type),
+	p.prepareRequest(contentType, p.workload.Header, string(p.workload.Type),
 		p.baseURI, string(payload), host, req.Request)
 	req.Request.Header.Add("Host", p.Host)
 	req.Request.Header.Add("User-Agent", "http_blaster")
@@ -91,7 +91,7 @@ LOOP:
 		default:
 			request := p.cloneRequest(req)
 			request.Request.SetHost(p.Host)
-			request.Request.SetRequestURI(p.GetURI("", p.workload.Args))
+			request.Request.SetRequestURI(p.getURI("", p.workload.Args))
 			if p.workload.Count == 0 {
 				chReq <- request
 				generated++

@@ -27,7 +27,7 @@ type RestoreGenerator struct {
 	emdIgnoreAttrs []string
 }
 
-type BackupItem struct {
+type backupItem struct {
 	Payload []byte
 	URI     string
 }
@@ -68,8 +68,8 @@ type itemsS struct {
 	Items            []map[string]map[string]interface{}
 }
 
-func (r *RestoreGenerator) generateItems(chLines chan []byte, collectionIds map[string]interface{}) chan *BackupItem {
-	chItems := make(chan *BackupItem, 100000)
+func (r *RestoreGenerator) generateItems(chLines chan []byte, collectionIds map[string]interface{}) chan *backupItem {
+	chItems := make(chan *backupItem, 100000)
 	wg := sync.WaitGroup{}
 	routines := 1 //runtime.NumCPU()/2
 	wg.Add(routines)
@@ -107,7 +107,7 @@ func (r *RestoreGenerator) generateItems(chLines chan []byte, collectionIds map[
 							payload.WriteString(`{"Item": `)
 							payload.Write(j)
 							payload.WriteString(`}`)
-							chItems <- &BackupItem{URI: r.baseURI + dirName.(string) + itemName.(string),
+							chItems <- &backupItem{URI: r.baseURI + dirName.(string) + itemName.(string),
 								Payload: payload.Bytes()}
 						}
 					}
@@ -121,7 +121,7 @@ func (r *RestoreGenerator) generateItems(chLines chan []byte, collectionIds map[
 }
 
 func (r *RestoreGenerator) generate(chReq chan *Request,
-	chItems chan *BackupItem, host string) {
+	chItems chan *backupItem, host string) {
 	defer close(chReq)
 	wg := sync.WaitGroup{}
 
@@ -132,7 +132,7 @@ func (r *RestoreGenerator) generate(chReq chan *Request,
 			defer wg.Done()
 			for item := range chItems {
 				req := AcquireRequest()
-				r.PrepareRequestBytes(contentType, r.workload.Header, "PUT",
+				r.prepareRequestBytes(contentType, r.workload.Header, "PUT",
 					item.URI, item.Payload, host, req.Request)
 				chReq <- req
 			}
@@ -145,7 +145,7 @@ func (r *RestoreGenerator) generate(chReq chan *Request,
 
 func (r *RestoreGenerator) lineReader() chan []byte {
 	chLines := make(chan []byte, 24)
-	chFiles := r.FilesScan(r.workload.Payload)
+	chFiles := r.filesScan(r.workload.Payload)
 	go func() {
 		for f := range chFiles {
 			if file, err := os.Open(f); err == nil {
@@ -185,7 +185,7 @@ func (r *RestoreGenerator) GenerateRequests(global config.Global, wl config.Work
 
 	r.workload.Header["X-v3io-function"] = "PutItem"
 
-	r.SetBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
+	r.setBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
 
 	inodeMap, err := r.LoadSchema(wl.Schema)
 

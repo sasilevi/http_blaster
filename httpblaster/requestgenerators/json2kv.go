@@ -37,7 +37,7 @@ func (j *JSON2Kv) generateRequest(chRecords chan []byte, chReq chan *Request, ho
 			panic(err)
 		}
 		req := AcquireRequest()
-		j.PrepareRequest(contentType, j.workload.Header, "PUT",
+		j.prepareRequest(contentType, j.workload.Header, "PUT",
 			j.baseURI, JSONPayload, host, req.Request)
 		chReq <- req
 	}
@@ -52,7 +52,7 @@ func (j *JSON2Kv) generate(chReq chan *Request, payload string, host string) {
 	for c := 0; c < runtime.NumCPU(); c++ {
 		go j.generateRequest(chRecords, chReq, host, &wg)
 	}
-	chFiles := j.FilesScan(j.workload.Payload)
+	chFiles := j.filesScan(j.workload.Payload)
 
 	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
@@ -91,7 +91,7 @@ func (j *JSON2Kv) GenerateRequests(global config.Global, wl config.Workload, TLS
 
 	chReq := make(chan *Request, workerQD)
 
-	j.SetBaseURI(TLSMode, host, j.workload.Container, j.workload.Target)
+	j.setBaseURI(TLSMode, host, j.workload.Container, j.workload.Target)
 
 	go j.generate(chReq, j.workload.Payload, host)
 
