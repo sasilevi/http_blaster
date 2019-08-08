@@ -76,7 +76,7 @@ func (r *Replay) GenerateRequests(global config.Global, wl config.Workload, TLSM
 
 	chReq := make(chan *Request, workerQD)
 
-	r.SetBaseUri(TLSMode, host, r.workload.Container, r.workload.Target)
+	r.SetBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
 
 	go r.generate(chReq, r.workload.Payload, host)
 

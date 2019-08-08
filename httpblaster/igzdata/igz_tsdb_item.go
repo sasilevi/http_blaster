@@ -51,7 +51,7 @@ func (ti *IgzTSDBItem) InsertSample(ts string, value float64) {
 	ti.Samples = append(ti.Samples, *s)
 }
 
-func (ti *IgzTSDBItem) ToJsonString() string {
+func (ti *IgzTSDBItem) ToJSONString() string {
 	body, _ := json.Marshal(ti)
 	return string(body)
 }

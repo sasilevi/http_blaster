@@ -26,7 +26,7 @@ func (cu *CsvUpdateKV) generateRequest(chRecords chan []string, chReq chan *Requ
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 	parser := igzdata.EmdSchemaParser{}
-	var contentType string = "application/json"
+	var contentType = "application/json"
 	e := parser.LoadSchema(cu.workload.Schema, cu.workload.UpdateMode, cu.workload.UpdateExpression)
 	if e != nil {
 		panic(e)
@@ -44,7 +44,7 @@ func (cu *CsvUpdateKV) generateRequest(chRecords chan []string, chReq chan *Requ
 
 func (cu *CsvUpdateKV) generate(chReq chan *Request, payload string, host string) {
 	defer close(chReq)
-	var chRecords chan []string = make(chan []string, 1000)
+	var chRecords = make(chan []string, 1000)
 	parser := igzdata.EmdSchemaParser{}
 	e := parser.LoadSchema(cu.workload.Schema, cu.workload.UpdateMode, cu.workload.UpdateExpression)
 	if e != nil {
@@ -101,7 +101,7 @@ func (cu *CsvUpdateKV) GenerateRequests(global config.Global, wl config.Workload
 	}
 	cu.workload.Header["X-v3io-function"] = "UpdateItem"
 
-	cu.SetBaseUri(TLSMode, host, cu.workload.Container, cu.workload.Target)
+	cu.SetBaseURI(TLSMode, host, cu.workload.Container, cu.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

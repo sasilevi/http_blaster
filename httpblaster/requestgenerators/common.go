@@ -35,7 +35,7 @@ type RequestCommon struct {
 }
 
 var (
-	contentType string = "application/json"
+	contentType = "application/json"
 )
 
 func (r *RequestCommon) PrepareRequest(contentType string,
@@ -93,7 +93,7 @@ func (r *RequestCommon) FilesScan(path string) chan string {
 	return r.chFiles
 }
 
-func (r *RequestCommon) SetBaseUri(TLSMode bool, host string, container string, target string) {
+func (r *RequestCommon) SetBaseURI(TLSMode bool, host string, container string, target string) {
 	http := "http"
 	if TLSMode {
 		http += "s"
@@ -110,7 +110,7 @@ func (r *RequestCommon) SetBaseUri(TLSMode bool, host string, container string, 
 	}
 }
 
-func (r *RequestCommon) GetUri(target string, params string) string {
+func (r *RequestCommon) GetURI(target string, params string) string {
 	if len(target) > 0 {
 		u := url.URL{Path: fmt.Sprintf("%s/%s", r.baseURI, target)}
 		return u.EscapedPath() + params

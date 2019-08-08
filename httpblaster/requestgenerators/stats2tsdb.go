@@ -58,7 +58,7 @@ func (r *Stats2TSDB) GenerateRequests(global config.Global, wl config.Workload, 
 	}
 	r.workload.Header["X-v3io-function"] = "PutItem"
 
-	r.SetBaseUri(TLSMode, host, r.workload.Container, r.workload.Target)
+	r.SetBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

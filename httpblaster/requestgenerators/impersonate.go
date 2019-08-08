@@ -57,9 +57,9 @@ func (ol *Impersonate) GenerateRequests(global config.Global, wl config.Workload
 	ol.workload = wl
 	ol.Host = host
 	if len(ol.workload.Targets) > 0 {
-		ol.SetBaseUri(tlsMode, host, "", "")
+		ol.SetBaseURI(tlsMode, host, "", "")
 	} else {
-		ol.SetBaseUri(tlsMode, host, ol.workload.Container, ol.workload.Target)
+		ol.SetBaseURI(tlsMode, host, ol.workload.Container, ol.workload.Target)
 	}
 
 	var contentType = "text/html"
@@ -104,7 +104,7 @@ LOOP:
 
 			request.Request.Header.Add("Host", host.Host)
 			request.Request.Header.Add("User-Agent", "http_blaster")
-			request.Request.SetRequestURI(ol.GetUri("", ol.workload.Args))
+			request.Request.SetRequestURI(ol.GetURI("", ol.workload.Args))
 			request.Host = host.Host
 			request.ExpectedConnectionStatus = host.Success
 

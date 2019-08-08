@@ -102,7 +102,7 @@ func (c *Csv2TSDB) GenerateRequests(global config.Global, wl config.Workload, TL
 	}
 	c.workload.Header["X-v3io-function"] = "PutItem"
 
-	c.SetBaseUri(TLSMode, host, c.workload.Container, c.workload.Target)
+	c.SetBaseURI(TLSMode, host, c.workload.Container, c.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

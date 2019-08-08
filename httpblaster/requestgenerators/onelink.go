@@ -30,7 +30,7 @@ func (ol *Onelink) UseCommon(c RequestCommon) {
 // 	chUsrAgent := rabbitmq.NewClient()
 // 	ol.workload = wl
 // 	ol.Host = host
-// 	ol.SetBaseUri(tlsMode, host, ol.workload.Container, ol.workload.Target)
+// 	ol.SetBaseURI(tlsMode, host, ol.workload.Container, ol.workload.Target)
 // 	var contentType = "text/html"
 // 	var payload []byte
 // 	var DataBfr []byte
@@ -86,9 +86,9 @@ func (ol *Onelink) GenerateRequests(global config.Global, wl config.Workload, tl
 	ol.workload = wl
 	ol.Host = host
 	if len(ol.workload.Targets) > 0 {
-		ol.SetBaseUri(tlsMode, host, "", "")
+		ol.SetBaseURI(tlsMode, host, "", "")
 	} else {
-		ol.SetBaseUri(tlsMode, host, ol.workload.Container, ol.workload.Target)
+		ol.SetBaseURI(tlsMode, host, ol.workload.Container, ol.workload.Target)
 	}
 
 	var contentType = "text/html"
@@ -129,7 +129,7 @@ LOOP:
 				ua := userAgent.(string)
 				request := AcquireRequest()
 				request.Request.SetHost(ol.Host)
-				request.Request.SetRequestURI(ol.GetUri(k, ""))
+				request.Request.SetRequestURI(ol.GetURI(k, ""))
 				request.Request.Header.Set("User-Agent", ua)
 				request.Cookie = dto.AcquireUaObj(ua, k)
 				chReq <- request

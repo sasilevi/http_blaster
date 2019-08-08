@@ -35,7 +35,7 @@ func (l *Line2StreamGenerator) generateRequest(chRecords chan string,
 		r := igzdata.NewStreamRecords(sr)
 		req := AcquireRequest()
 		l.PrepareRequest(contentType, l.workload.Header, "PUT",
-			l.baseURI, r.ToJsonString(), host, req.Request)
+			l.baseURI, r.ToJSONString(), host, req.Request)
 		chReq <- req
 	}
 	log.Println("generateRequest Done")
@@ -55,7 +55,7 @@ func (l *Line2StreamGenerator) generate(chReq chan *Request, payload string, hos
 	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
 			reader := bufio.NewReader(file)
-			var lineCount int = 0
+			var lineCount = 0
 			for {
 				line, err := reader.ReadString('\n')
 				if err == nil {
@@ -89,7 +89,7 @@ func (l *Line2StreamGenerator) GenerateRequests(global config.Global, wl config.
 	}
 	l.workload.Header["X-v3io-function"] = "PutRecords"
 
-	l.SetBaseUri(TLSMode, host, l.workload.Container, l.workload.Target)
+	l.SetBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

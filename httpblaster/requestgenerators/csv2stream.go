@@ -43,7 +43,7 @@ func (c *CSV2StreamGenerator) generateRequest(chRecords chan string,
 		r := igzdata.NewStreamRecords(sr)
 		req := AcquireRequest()
 		c.PrepareRequest(contentType, c.workload.Header, "PUT",
-			c.baseURI, r.ToJsonString(), host, req.Request)
+			c.baseURI, r.ToJSONString(), host, req.Request)
 		chReq <- req
 	}
 	log.Println("generateRequest Done")
@@ -63,7 +63,7 @@ func (c *CSV2StreamGenerator) generate(chReq chan *Request, payload string, host
 	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
 			reader := bufio.NewReader(file)
-			var i int = 0
+			var i = 0
 			for {
 				line, err := reader.ReadString('\n')
 				if err == nil {
@@ -94,7 +94,7 @@ func (c *CSV2StreamGenerator) GenerateRequests(global config.Global, wl config.W
 	}
 	c.workload.Header["X-v3io-function"] = "PutRecords"
 
-	c.SetBaseUri(TLSMode, host, c.workload.Container, c.workload.Target)
+	c.SetBaseURI(TLSMode, host, c.workload.Container, c.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

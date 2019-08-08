@@ -13,16 +13,16 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/igzdata"
 )
 
-type Json2KV struct {
+type JSON2Kv struct {
 	workload config.Workload
 	RequestCommon
 }
 
-func (j *Json2KV) UseCommon(c RequestCommon) {
+func (j *JSON2Kv) UseCommon(c RequestCommon) {
 
 }
 
-func (j *Json2KV) generateRequest(chRecords chan []byte, chReq chan *Request, host string,
+func (j *JSON2Kv) generateRequest(chRecords chan []byte, chReq chan *Request, host string,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 	parser := igzdata.EmdSchemaParser{}
@@ -32,7 +32,7 @@ func (j *Json2KV) generateRequest(chRecords chan []byte, chReq chan *Request, ho
 		panic(e)
 	}
 	for r := range chRecords {
-		JSONPayload, err := parser.EmdFromJsonRecord(r)
+		JSONPayload, err := parser.EmdFromJSONRecord(r)
 		if err != nil {
 			panic(err)
 		}
@@ -43,9 +43,9 @@ func (j *Json2KV) generateRequest(chRecords chan []byte, chReq chan *Request, ho
 	}
 }
 
-func (j *Json2KV) generate(chReq chan *Request, payload string, host string) {
+func (j *JSON2Kv) generate(chReq chan *Request, payload string, host string) {
 	defer close(chReq)
-	var chRecords chan []byte = make(chan []byte, 10000)
+	var chRecords = make(chan []byte, 10000)
 
 	wg := sync.WaitGroup{}
 	wg.Add(runtime.NumCPU())
@@ -57,7 +57,7 @@ func (j *Json2KV) generate(chReq chan *Request, payload string, host string) {
 	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
 			reader := bufio.NewReader(file)
-			var lineCount int = 0
+			var lineCount = 0
 			for {
 				line, err := reader.ReadBytes('\n')
 				if err == nil {
@@ -82,7 +82,7 @@ func (j *Json2KV) generate(chReq chan *Request, payload string, host string) {
 	wg.Wait()
 }
 
-func (j *Json2KV) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
+func (j *JSON2Kv) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
 	j.workload = wl
 	if j.workload.Header == nil {
 		j.workload.Header = make(map[string]string)
@@ -91,7 +91,7 @@ func (j *Json2KV) GenerateRequests(global config.Global, wl config.Workload, TLS
 
 	chReq := make(chan *Request, workerQD)
 
-	j.SetBaseUri(TLSMode, host, j.workload.Container, j.workload.Target)
+	j.SetBaseURI(TLSMode, host, j.workload.Container, j.workload.Target)
 
 	go j.generate(chReq, j.workload.Payload, host)
 

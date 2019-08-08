@@ -82,7 +82,7 @@ func (l *Line2KvGenerator) GenerateRequests(global config.Global, wl config.Work
 	}
 	l.workload.Header["X-v3io-function"] = "PutItem"
 
-	l.SetBaseUri(TLSMode, host, l.workload.Container, l.workload.Target)
+	l.SetBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

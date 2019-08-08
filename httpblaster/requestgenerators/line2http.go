@@ -26,7 +26,7 @@ func (l *Line2HttpGenerator) generateRequest(chLines chan string,
 	chReq chan *Request,
 	host string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	var contentType string = "application/text"
+	var contentType = "application/text"
 	for r := range chLines {
 		req := AcquireRequest()
 		l.PrepareRequest(contentType, l.workload.Header, "PUT",
@@ -50,7 +50,7 @@ func (l *Line2HttpGenerator) generate(chReq chan *Request, payload string, host 
 	for f := range chFiles {
 		if file, err := os.Open(f); err == nil {
 			reader := bufio.NewReader(file)
-			var lineCount int = 0
+			var lineCount = 0
 			for {
 				line, err := reader.ReadString('\n')
 				if err == nil {
@@ -84,7 +84,7 @@ func (l *Line2HttpGenerator) GenerateRequests(global config.Global, wl config.Wo
 	}
 	//l.workload.Header["X-v3io-function"] = "PutRecords"
 
-	l.SetBaseUri(TLSMode, host, l.workload.Container, l.workload.Target)
+	l.SetBaseURI(TLSMode, host, l.workload.Container, l.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

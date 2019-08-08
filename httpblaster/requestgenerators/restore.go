@@ -29,14 +29,14 @@ type RestoreGenerator struct {
 
 type BackupItem struct {
 	Payload []byte
-	Uri     string
+	URI     string
 }
 
 func (r *RestoreGenerator) UseCommon(c RequestCommon) {
 
 }
 
-func (r *RestoreGenerator) LoadSchema(filePath string) (error, map[string]interface{}) {
+func (r *RestoreGenerator) LoadSchema(filePath string) (map[string]interface{}, error) {
 	type backupSchema struct {
 		records map[interface{}]interface{}
 		inode   map[interface{}]interface{}
@@ -53,9 +53,9 @@ func (r *RestoreGenerator) LoadSchema(filePath string) (error, map[string]interf
 		panic(err)
 	}
 	if val, ok := data.(map[string]interface{})["inode"]; ok {
-		return nil, val.(map[string]interface{})
+		return val.(map[string]interface{}), nil
 	}
-	return errors.New("fail to get inode table"), nil
+	return nil, errors.New("fail to get inode table")
 
 }
 
@@ -107,7 +107,7 @@ func (r *RestoreGenerator) generateItems(chLines chan []byte, collectionIds map[
 							payload.WriteString(`{"Item": `)
 							payload.Write(j)
 							payload.WriteString(`}`)
-							chItems <- &BackupItem{Uri: r.baseURI + dirName.(string) + itemName.(string),
+							chItems <- &BackupItem{URI: r.baseURI + dirName.(string) + itemName.(string),
 								Payload: payload.Bytes()}
 						}
 					}
@@ -133,7 +133,7 @@ func (r *RestoreGenerator) generate(chReq chan *Request,
 			for item := range chItems {
 				req := AcquireRequest()
 				r.PrepareRequestBytes(contentType, r.workload.Header, "PUT",
-					item.Uri, item.Payload, host, req.Request)
+					item.URI, item.Payload, host, req.Request)
 				chReq <- req
 			}
 		}()
@@ -185,9 +185,9 @@ func (r *RestoreGenerator) GenerateRequests(global config.Global, wl config.Work
 
 	r.workload.Header["X-v3io-function"] = "PutItem"
 
-	r.SetBaseUri(TLSMode, host, r.workload.Container, r.workload.Target)
+	r.SetBaseURI(TLSMode, host, r.workload.Container, r.workload.Target)
 
-	err, inodeMap := r.LoadSchema(wl.Schema)
+	inodeMap, err := r.LoadSchema(wl.Schema)
 
 	if err != nil {
 		panic(err)

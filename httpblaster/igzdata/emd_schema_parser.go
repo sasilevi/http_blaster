@@ -2,7 +2,6 @@ package igzdata
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -207,7 +206,7 @@ func (e *EmdSchemaParser) EmdFromCSVRecord(vals []string) string {
 	emdItem.InsertKey("key", TSTRING, e.KeyFromCSVRecord(vals))
 	for i, v := range vals {
 		if val, ok := e.valuesMap[i]; ok {
-			err, igzType, value := ConvertValue(val.Type, v)
+			igzType, value, err := ConvertValue(val.Type, v)
 			if err != nil {
 				panic(fmt.Sprintf("conversion error %d %v %v", i, v, e.valuesMap[i]))
 			}
@@ -220,7 +219,7 @@ func (e *EmdSchemaParser) EmdFromCSVRecord(vals []string) string {
 func (e *EmdSchemaParser) TSDBFromCSVRecord(vals []string) string {
 	tsdbItem := IgzTSDBItem{}
 	tsdbItem.GenerateStruct(vals, e)
-	return string(tsdbItem.ToJsonString())
+	return string(tsdbItem.ToJSONString())
 }
 
 func (e *EmdSchemaParser) TSDBItemsFromCSVRecord(vals []string) []string {
@@ -246,7 +245,7 @@ func (e *EmdSchemaParser) EmdUpdateFromCSVRecord(vals []string) string {
 	return string(emdUpdate.ToJSONString())
 }
 
-func (e *EmdSchemaParser) HandleJsonSource(source string) []string {
+func (e *EmdSchemaParser) HandleJSONSource(source string) []string {
 	var out []string
 	arr := strings.Split(source, ".")
 	for _, a := range arr {
@@ -275,7 +274,7 @@ func handleOffset(str string) []string {
 	return res
 }
 
-func (e *EmdSchemaParser) KeyFromJsonRecord(jsonObj []byte) string {
+func (e *EmdSchemaParser) KeyFromJSONRecord(jsonObj []byte) string {
 	//when no keys, generate random
 	if len(e.schemaKeyIndexs) == 0 {
 		u, _ := uuid.NewV4()
@@ -283,7 +282,7 @@ func (e *EmdSchemaParser) KeyFromJsonRecord(jsonObj []byte) string {
 	}
 	//when 1 key, return the key
 	if len(e.schemaKeyIndexs) == 1 {
-		sourceArr := e.HandleJsonSource(e.valuesMap[e.schemaKeyIndexs[0]].Source)
+		sourceArr := e.HandleJSONSource(e.valuesMap[e.schemaKeyIndexs[0]].Source)
 		s, _, _, e := jsonparser.Get(jsonObj, sourceArr...)
 		if e != nil {
 			panic(fmt.Sprintf("%v, %+v", e, sourceArr))
@@ -294,7 +293,7 @@ func (e *EmdSchemaParser) KeyFromJsonRecord(jsonObj []byte) string {
 	var keys []interface{}
 	for _, i := range e.schemaKeyIndexs {
 		//fmt.Println("indexes ",i, len(e.valuesMap))
-		sourceArr := e.HandleJsonSource(e.valuesMap[i].Source)
+		sourceArr := e.HandleJSONSource(e.valuesMap[i].Source)
 		s, _, _, e := jsonparser.Get(jsonObj, sourceArr...)
 		if e != nil {
 			panic(e)
@@ -306,11 +305,11 @@ func (e *EmdSchemaParser) KeyFromJsonRecord(jsonObj []byte) string {
 	return key
 }
 
-func (e *EmdSchemaParser) EmdFromJsonRecord(jsonObj []byte) (string, error) {
+func (e *EmdSchemaParser) EmdFromJSONRecord(jsonObj []byte) (string, error) {
 	emdItem := NewEmdItem()
-	emdItem.InsertKey("key", TSTRING, e.KeyFromJsonRecord(jsonObj))
+	emdItem.InsertKey("key", TSTRING, e.KeyFromJSONRecord(jsonObj))
 	for _, v := range e.valuesMap {
-		sourceArr := e.HandleJsonSource(v.Source)
+		sourceArr := e.HandleJSONSource(v.Source)
 		var str []byte
 		var e error
 		str, _, _, e = jsonparser.Get(jsonObj, sourceArr...)
@@ -321,27 +320,27 @@ func (e *EmdSchemaParser) EmdFromJsonRecord(jsonObj []byte) (string, error) {
 				} else if v.Default != "" {
 					str = []byte(v.Default)
 				} else {
-					return "", errors.New(fmt.Sprintf("%v, %+v", e, v.Source))
+					return "", fmt.Errorf("%v, %+v", e, v.Source)
 				}
 			} else {
-				return "", errors.New(fmt.Sprintf("%v, %+v", e, v.Source))
+				return "", fmt.Errorf("%v, %+v", e, v.Source)
 			}
 		}
-		err, igzType, value := ConvertValue(v.Type, string(str))
+		igzType, value, err := ConvertValue(v.Type, string(str))
 		if err != nil {
-			return "", errors.New(fmt.Sprintf("%v, %+v", err, v.Source))
+			return "", fmt.Errorf("%v, %+v", err, v.Source)
 		}
 		emdItem.InsertItemAttr(v.Name, igzType, value)
 	}
 	return string(emdItem.ToJSONString()), nil
 }
 
-func ConvertValue(t IgzType, v string) (error, IgzType, interface{}) {
+func ConvertValue(t IgzType, v string) (IgzType, interface{}, error) {
 	switch t {
 	case TSTRING:
-		return nil, TSTRING, v
+		return TSTRING, v, nil
 	case TNUMBER:
-		return nil, TNUMBER, v
+		return TNUMBER, v, nil
 	case TDOUBLE:
 		//r, e := strconv.ParseFloat(v, 64)
 		//if e != nil {
@@ -349,8 +348,8 @@ func ConvertValue(t IgzType, v string) (error, IgzType, interface{}) {
 		//}
 		//val := fmt.Sprintf("%.1f", r)
 		//return e, TNUMBER, val
-		return nil, TNUMBER, v
+		return TNUMBER, v, nil
 	default:
-		return errors.New(fmt.Sprintf("missing type conversion %v", t)), TSTRING, ""
+		return TSTRING, "", fmt.Errorf("missing type conversion %v", t)
 	}
 }

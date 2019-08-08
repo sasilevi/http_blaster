@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 )
 
+//igz data consts
 const (
 	ClientInfo   = "ClientInfo"
 	DATA         = "Data"
 	PartitionKey = "PartitionKey"
-	ShardId      = "ShardId"
+	ShardID      = "ShardId"
 )
 
 type StreamRecord map[string]interface {
@@ -35,8 +36,8 @@ func (sr StreamRecord) SetPartitionKey(partitionKey string) {
 	sr[PartitionKey] = partitionKey
 }
 
-func (sr StreamRecord) SetShardId(shardID int) {
-	sr[ShardId] = shardID
+func (sr StreamRecord) SetShardID(shardID int) {
+	sr[ShardID] = shardID
 }
 
 type StreamRecords struct {
@@ -47,7 +48,7 @@ type StreamRecords struct {
 	Records []StreamRecord
 }
 
-func (sr *StreamRecords) ToJsonString() string {
+func (sr *StreamRecords) ToJSONString() string {
 	body, err := json.Marshal(sr)
 	if err != nil {
 		panic(err)
@@ -62,7 +63,7 @@ func NewStreamRecord(clientInfo string, data string, partitionKey string,
 	r = make(map[string]interface{})
 	r.SetClientInfo(clientInfo)
 	if shardRoundRobin == false {
-		r.SetShardId(shardID)
+		r.SetShardID(shardID)
 		r.SetPartitionKey(partitionKey)
 	}
 	r.SetData(data)

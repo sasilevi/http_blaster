@@ -42,7 +42,7 @@ func (c *Csv2KV) generateRequest(chRecords chan []string, chReq chan *Request, h
 
 func (c *Csv2KV) generate(chReq chan *Request, payload string, host string) {
 	defer close(chReq)
-	var chRecords chan []string = make(chan []string, 1000)
+	var chRecords = make(chan []string, 1000)
 	parser := igzdata.EmdSchemaParser{}
 	e := parser.LoadSchema(c.workload.Schema, "", "")
 	if e != nil {
@@ -99,7 +99,7 @@ func (c *Csv2KV) GenerateRequests(global config.Global, wl config.Workload, TLSM
 	}
 	c.workload.Header["X-v3io-function"] = "PutItem"
 
-	c.SetBaseUri(TLSMode, host, c.workload.Container, c.workload.Target)
+	c.SetBaseURI(TLSMode, host, c.workload.Container, c.workload.Target)
 
 	chReq := make(chan *Request, workerQD)
 

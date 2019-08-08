@@ -119,7 +119,7 @@ func (ex *Executor) loadRequestGenerator() (chan *requestgenerators.Request,
 		reqGen = &requestgenerators.CsvUpdateKV{}
 		break
 	case requestgenerators.JSON2KV:
-		reqGen = &requestgenerators.Json2KV{}
+		reqGen = &requestgenerators.JSON2Kv{}
 		break
 	case requestgenerators.LINE2KV:
 		reqGen = &requestgenerators.Line2KvGenerator{}
