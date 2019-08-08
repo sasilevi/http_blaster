@@ -1,0 +1,31 @@
+title = "Workload get example"
+
+[global]
+block_size = 5
+Duration = "160s"
+servers=["domain.com", "domain2.com"]
+port="443"
+TLSMode=true
+
+ [global.StatusCodesAcceptance]
+  200 = 100.0
+  204 = 100.0
+  205 = 100.0
+
+[workloads]
+  [workloads.impersonate]
+      generator="impersonate"
+      ResetConnectionOnSend=true
+      name="impersonate"
+      container=""
+      Target=""
+      Duration = "200s"
+      TYPE="GET"
+      count=20
+      workers=100
+      Args="?id=123&mama=true"
+      [workloads.get.ImpersonateHosts]
+      "my.fake.domain1.com"=true
+      "my.fake.domain2.com"=true
+      
+      
