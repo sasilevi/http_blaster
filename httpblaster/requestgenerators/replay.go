@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"bufio"
@@ -18,19 +18,19 @@ type Replay struct {
 	RequestCommon
 }
 
-func (self *Replay) UseCommon(c RequestCommon) {
+func (r *Replay) UseCommon(c RequestCommon) {
 
 }
 
-func (self *Replay) generate_request(ch_records chan []byte, ch_req chan *Request, host string,
+func (r *Replay) generateRequest(ch_records chan []byte, ch_req chan *Request, host string,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
-	for r := range ch_records {
+	for rec := range ch_records {
 		req_dump := &RequestDump{}
-		json.Unmarshal(r, req_dump)
+		json.Unmarshal(rec, req_dump)
 
 		req := AcquireRequest()
-		self.PrepareRequest(contentType, req_dump.Headers,
+		r.PrepareRequest(contentType, req_dump.Headers,
 			req_dump.Method,
 			req_dump.URI,
 			req_dump.Body,
@@ -40,17 +40,17 @@ func (self *Replay) generate_request(ch_records chan []byte, ch_req chan *Reques
 	}
 }
 
-func (self *Replay) generate(ch_req chan *Request, payload string, host string) {
+func (r *Replay) generate(ch_req chan *Request, payload string, host string) {
 	defer close(ch_req)
 	var ch_records chan []byte = make(chan []byte, 10000)
 
 	wg := sync.WaitGroup{}
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
-		go self.generate_request(ch_records, ch_req, host, &wg)
+		go r.generateRequest(ch_records, ch_req, host, &wg)
 	}
 	r_count := 0
-	ch_files := self.FilesScan(self.workload.Payload)
+	ch_files := r.FilesScan(r.workload.Payload)
 
 	for f := range ch_files {
 		if file, err := os.Open(f); err == nil {
@@ -71,14 +71,14 @@ func (self *Replay) generate(ch_req chan *Request, payload string, host string) 
 	wg.Wait()
 }
 
-func (self *Replay) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
-	self.workload = wl
+func (r *Replay) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
+	r.workload = wl
 
 	ch_req := make(chan *Request, worker_qd)
 
-	self.SetBaseUri(tls_mode, host, self.workload.Container, self.workload.Target)
+	r.SetBaseUri(tls_mode, host, r.workload.Container, r.workload.Target)
 
-	go self.generate(ch_req, self.workload.Payload, host)
+	go r.generate(ch_req, r.workload.Payload, host)
 
 	return ch_req
 }

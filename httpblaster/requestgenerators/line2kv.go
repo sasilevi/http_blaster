@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"bufio"
@@ -18,32 +18,32 @@ type Line2KvGenerator struct {
 	workload config.Workload
 }
 
-func (self *Line2KvGenerator) UseCommon(c RequestCommon) {
+func (l *Line2KvGenerator) UseCommon(c RequestCommon) {
 
 }
 
-func (self *Line2KvGenerator) generate_request(ch_records chan []string,
+func (l *Line2KvGenerator) generateRequest(ch_records chan []string,
 	ch_req chan *Request,
 	host string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for r := range ch_records {
 		req := AcquireRequest()
-		self.PrepareRequest(contentType, self.workload.Header, "PUT",
+		l.PrepareRequest(contentType, l.workload.Header, "PUT",
 			r[0], r[1], host, req.Request)
 		ch_req <- req
 	}
-	log.Println("generate_request Done")
+	log.Println("generateRequest Done")
 }
 
-func (self *Line2KvGenerator) generate(ch_req chan *Request, payload string, host string) {
+func (l *Line2KvGenerator) generate(ch_req chan *Request, payload string, host string) {
 	defer close(ch_req)
 	var ch_records chan []string = make(chan []string)
 	wg := sync.WaitGroup{}
-	ch_files := self.FilesScan(self.workload.Payload)
+	ch_files := l.FilesScan(l.workload.Payload)
 
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
-		go self.generate_request(ch_records, ch_req, host, &wg)
+		go l.generateRequest(ch_records, ch_req, host, &wg)
 	}
 
 	for f := range ch_files {
@@ -75,18 +75,18 @@ func (self *Line2KvGenerator) generate(ch_req chan *Request, payload string, hos
 	log.Println("generators done")
 }
 
-func (self *Line2KvGenerator) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
-	self.workload = wl
-	if self.workload.Header == nil {
-		self.workload.Header = make(map[string]string)
+func (l *Line2KvGenerator) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
+	l.workload = wl
+	if l.workload.Header == nil {
+		l.workload.Header = make(map[string]string)
 	}
-	self.workload.Header["X-v3io-function"] = "PutItem"
+	l.workload.Header["X-v3io-function"] = "PutItem"
 
-	self.SetBaseUri(tls_mode, host, self.workload.Container, self.workload.Target)
+	l.SetBaseUri(tls_mode, host, l.workload.Container, l.workload.Target)
 
 	ch_req := make(chan *Request, worker_qd)
 
-	go self.generate(ch_req, self.workload.Payload, host)
+	go l.generate(ch_req, l.workload.Payload, host)
 
 	return ch_req
 }

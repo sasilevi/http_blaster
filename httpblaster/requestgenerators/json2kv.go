@@ -1,0 +1,99 @@
+package requestgenerators
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"runtime"
+	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/igzdata"
+)
+
+type Json2KV struct {
+	workload config.Workload
+	RequestCommon
+}
+
+func (j *Json2KV) UseCommon(c RequestCommon) {
+
+}
+
+func (j *Json2KV) generateRequest(chRecords chan []byte, chReq chan *Request, host string,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+	parser := igzdata.EmdSchemaParser{}
+	var contentType = "text/html"
+	e := parser.LoadSchema(j.workload.Schema, "", "")
+	if e != nil {
+		panic(e)
+	}
+	for r := range chRecords {
+		JSONPayload, err := parser.EmdFromJsonRecord(r)
+		if err != nil {
+			panic(err)
+		}
+		req := AcquireRequest()
+		j.PrepareRequest(contentType, j.workload.Header, "PUT",
+			j.baseURI, JSONPayload, host, req.Request)
+		chReq <- req
+	}
+}
+
+func (j *Json2KV) generate(chReq chan *Request, payload string, host string) {
+	defer close(chReq)
+	var chRecords chan []byte = make(chan []byte, 10000)
+
+	wg := sync.WaitGroup{}
+	wg.Add(runtime.NumCPU())
+	for c := 0; c < runtime.NumCPU(); c++ {
+		go j.generateRequest(chRecords, chReq, host, &wg)
+	}
+	chFiles := j.FilesScan(j.workload.Payload)
+
+	for f := range chFiles {
+		if file, err := os.Open(f); err == nil {
+			reader := bufio.NewReader(file)
+			var lineCount int = 0
+			for {
+				line, err := reader.ReadBytes('\n')
+				if err == nil {
+					chRecords <- line
+					lineCount++
+					if lineCount%1024 == 0 {
+						log.Printf("line: %d from file %s was submitted", lineCount, f)
+					}
+				} else if err == io.EOF {
+					break
+				} else {
+					log.Fatal(err)
+				}
+			}
+
+			log.Println(fmt.Sprintf("Finish file scaning, generated %d records", lineCount))
+		} else {
+			panic(err)
+		}
+	}
+	close(chRecords)
+	wg.Wait()
+}
+
+func (j *Json2KV) GenerateRequests(global config.Global, wl config.Workload, TLSMode bool, host string, chRet chan *Response, workerQD int) chan *Request {
+	j.workload = wl
+	if j.workload.Header == nil {
+		j.workload.Header = make(map[string]string)
+	}
+	j.workload.Header["X-v3io-function"] = "PutItem"
+
+	chReq := make(chan *Request, workerQD)
+
+	j.SetBaseUri(TLSMode, host, j.workload.Container, j.workload.Target)
+
+	go j.generate(chReq, j.workload.Payload, host)
+
+	return chReq
+}

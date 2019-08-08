@@ -18,13 +18,13 @@ func (sc *Counter) GetValue() int64 {
 	return value
 }
 
-func (self *Counter) start() chan int64 {
+func (c *Counter) start() chan int64 {
 	go func() {
-		for v := range self.ch_values {
-			atomic.AddInt64(&self.count, v)
+		for v := range c.ch_values {
+			atomic.AddInt64(&c.count, v)
 		}
 	}()
-	return self.ch_values
+	return c.ch_values
 }
 
 func NewCounter() *Counter {

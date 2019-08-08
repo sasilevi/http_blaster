@@ -16,7 +16,7 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/db"
 	"github.com/v3io/http_blaster/httpblaster/dto"
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 )
 
 // RedirectResponseHandler : response handler for redirect test
@@ -48,7 +48,7 @@ type errorsCounters struct {
 }
 
 // HandlerResponses :  handler function to habdle responses
-func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workload config.Workload, respCh chan *request_generators.Response) {
+func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workload config.Workload, respCh chan *requestgenerators.Response) {
 	r.dumpDir = "WrongLinksDumps"
 	r.positiveHash = r.hash("")
 	os.MkdirAll(r.dumpDir, os.ModePerm)
@@ -75,7 +75,7 @@ func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workloa
 			r.checkResponse(resp)
 		}
 		dto.ReleaseUaObj(resp.Cookie.(*dto.UserAgentMessage))
-		request_generators.ReleaseResponse(resp)
+		requestgenerators.ReleaseResponse(resp)
 	}
 }
 func (r *RedirectResponseHandler) hash(s string) uint32 {
@@ -108,7 +108,7 @@ func (r *RedirectResponseHandler) dumpUserAgentToFile(hash uint32, userAgent str
 	f.Close()
 }
 
-func (r *RedirectResponseHandler) recordResult(response *request_generators.Response, wrongLink bool, notFound bool, expectedStoreLink string, file bool, db bool, saveBody bool) {
+func (r *RedirectResponseHandler) recordResult(response *requestgenerators.Response, wrongLink bool, notFound bool, expectedStoreLink string, file bool, db bool, saveBody bool) {
 	body := response.Response.Body()
 	userAgent := response.Cookie.(*dto.UserAgentMessage).UserAgent
 	target := response.Cookie.(*dto.UserAgentMessage).Target
@@ -131,7 +131,7 @@ func (r *RedirectResponseHandler) recordResult(response *request_generators.Resp
 	}
 }
 
-// func (r *RedirectResponseHandler) recordResult(response *request_generators.Response, wrongLink bool, notFound bool, expectedStoreLink string, file bool, db bool, saveBody bool) {
+// func (r *RedirectResponseHandler) recordResult(response *requestgenerators.Response, wrongLink bool, notFound bool, expectedStoreLink string, file bool, db bool, saveBody bool) {
 // 	body := response.Response.Body()
 // 	userAgent := response.Cookie.(*dto.UserAgentMessage).UserAgent
 // 	target := response.Cookie.(*dto.UserAgentMessage).Target
@@ -153,7 +153,7 @@ func (r *RedirectResponseHandler) recordResult(response *request_generators.Resp
 // 	}
 // }
 
-func (r *RedirectResponseHandler) checkResponse(response *request_generators.Response) {
+func (r *RedirectResponseHandler) checkResponse(response *requestgenerators.Response) {
 	err := &errorInfo{Status: response.Response.StatusCode(), NotFound: false, WrongLink: false}
 	expectedStoreLink := r.Checks[response.Cookie.(*dto.UserAgentMessage).Target].String()
 	if response.Response.StatusCode() == http.StatusOK {
@@ -180,7 +180,7 @@ func (r *RedirectResponseHandler) checkResponse(response *request_generators.Res
 	r.recordResult(response, err.WrongLink, err.NotFound, expectedStoreLink, r.RecordFile, true, true)
 }
 
-func (r *RedirectResponseHandler) checkNotFoundResponse(response *request_generators.Response) bool {
+func (r *RedirectResponseHandler) checkNotFoundResponse(response *requestgenerators.Response) bool {
 	if r.notFound.Match([]byte(response.Response.String())) {
 		return true
 	}

@@ -238,7 +238,7 @@ func (t *TermUI) ui_get_iops(x, y, w, h int) *ui.LineChart {
 	return lc2
 }
 
-func (t *TermUI) ui_put_iops(x, y, w, h int) *ui.LineChart {
+func (t *TermUI) uiPutIops(x, y, w, h int) *ui.LineChart {
 	lc2 := ui.NewLineChart()
 	lc2.BorderLabel = "Put iops chart"
 	lc2.Mode = "braille"
@@ -314,7 +314,7 @@ func (t *TermUI) InitTerminamlUI(cfg *config.TomlConfig) chan struct{} {
 	t.widgetTitle = t.ui_set_title(0, 0, 50, Percentage(7, term_hight))
 	t.widgetServerInfo = t.ui_set_servers_info(0, 0, 0, 0)
 	t.widgetSysInfo = t.ui_set_system_info(0, 0, 0, t.widgetServerInfo.GetHeight())
-	t.widgetPutIopsChart = t.ui_put_iops(0, 0, 0, Percentage(30, term_hight))
+	t.widgetPutIopsChart = t.uiPutIops(0, 0, 0, Percentage(30, term_hight))
 	t.widgetGetIopsChart = t.ui_get_iops(0, 0, 0, Percentage(30, term_hight))
 	t.widgetPutLatency = t.ui_set_put_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))
 	t.widgetGetLatency = t.ui_set_get_latency_bar_chart(0, 0, 0, Percentage(30, term_hight))

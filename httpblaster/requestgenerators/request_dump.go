@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 type RequestDump struct {
 	Host    string

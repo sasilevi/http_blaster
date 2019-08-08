@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ const (
 	CSVUPDATEKV = "csvupdatekv"
 	CSV2STREAM  = "csv2stream"
 	JSON2KV     = "json2kv"
-	STREAM_GET  = "stream_get"
+	STREAMGET   = "stream_get"
 	LINE2KV     = "line2kv"
 	RESTORE     = "restore"
 	LINE2HTTP   = "line2http"
@@ -29,91 +29,91 @@ const (
 )
 
 type RequestCommon struct {
-	ch_files chan string
-	base_uri string
+	chFiles chan string
+	baseURI string
 }
 
 var (
 	contentType string = "application/json"
 )
 
-func (self *RequestCommon) PrepareRequest(content_type string,
-	header_args map[string]string,
+func (r *RequestCommon) PrepareRequest(contentType string,
+	headerArgs map[string]string,
 	method string, uri string,
 	body string, host string, req *fasthttp.Request) {
 	u := url.URL{Path: uri}
-	req.Header.SetContentType(content_type)
+	req.Header.SetContentType(contentType)
 	req.Header.SetMethod(method)
 	req.Header.SetRequestURI(u.EscapedPath())
 	req.Header.SetHost(host)
-	for k, v := range header_args {
+	for k, v := range headerArgs {
 		req.Header.Set(k, v)
 	}
 	req.AppendBodyString(body)
 }
 
-func (self *RequestCommon) PrepareRequestBytes(content_type string,
-	header_args map[string]string,
+func (r *RequestCommon) PrepareRequestBytes(contentType string,
+	headerArgs map[string]string,
 	method string, uri string,
 	body []byte, host string, req *fasthttp.Request) {
 	u := url.URL{Path: uri}
-	req.Header.SetContentType(content_type)
+	req.Header.SetContentType(contentType)
 	req.Header.SetMethod(method)
 	req.Header.SetRequestURI(u.EscapedPath())
 	req.Header.SetHost(host)
-	for k, v := range header_args {
+	for k, v := range headerArgs {
 		req.Header.Set(k, v)
 	}
 	req.AppendBody(body)
 }
 
-func (self *RequestCommon) SubmitFiles(path string, info os.FileInfo, err error) error {
+func (r *RequestCommon) SubmitFiles(path string, info os.FileInfo, err error) error {
 	log.Print(path)
 	if err != nil {
 		log.Print(err)
 		return nil
 	}
 	if !info.IsDir() {
-		self.ch_files <- path
+		r.chFiles <- path
 	}
 	fmt.Println(path)
 	return nil
 }
 
-func (self *RequestCommon) FilesScan(path string) chan string {
-	self.ch_files = make(chan string)
+func (r *RequestCommon) FilesScan(path string) chan string {
+	r.chFiles = make(chan string)
 	go func() {
-		err := filepath.Walk(path, self.SubmitFiles)
+		err := filepath.Walk(path, r.SubmitFiles)
 		if err != nil {
 			log.Fatal(err)
 		}
-		close(self.ch_files)
+		close(r.chFiles)
 	}()
-	return self.ch_files
+	return r.chFiles
 }
 
-func (self *RequestCommon) SetBaseUri(tls_mode bool, host string, container string, target string) {
+func (r *RequestCommon) SetBaseUri(TLSMode bool, host string, container string, target string) {
 	http := "http"
-	if tls_mode {
+	if TLSMode {
 		http += "s"
 	}
 
-	self.base_uri = fmt.Sprintf("%s://%s", http, host)
+	r.baseURI = fmt.Sprintf("%s://%s", http, host)
 
 	if len(container) > 0 {
-		self.base_uri += fmt.Sprintf("/%s", container)
+		r.baseURI += fmt.Sprintf("/%s", container)
 
 	}
 	if len(target) > 0 {
-		self.base_uri += fmt.Sprintf("/%s", target)
+		r.baseURI += fmt.Sprintf("/%s", target)
 	}
 }
 
-func (self *RequestCommon) GetUri(target string, params string) string {
+func (r *RequestCommon) GetUri(target string, params string) string {
 	if len(target) > 0 {
-		u := url.URL{Path: fmt.Sprintf("%s/%s", self.base_uri, target)}
+		u := url.URL{Path: fmt.Sprintf("%s/%s", r.baseURI, target)}
 		return u.EscapedPath() + params
 	}
-	u := url.URL{Path: self.base_uri}
+	u := url.URL{Path: r.baseURI}
 	return u.EscapedPath() + params
 }

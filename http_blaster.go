@@ -34,6 +34,7 @@ import (
 	"time"
 
 	logrus_stack "github.com/Gurpartap/logrus-stack"
+	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster"
 	"github.com/v3io/http_blaster/httpblaster/config"

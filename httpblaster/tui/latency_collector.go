@@ -1,8 +1,9 @@
 package tui
 
 import (
-	"github.com/sasile/gohistogram"
 	"time"
+
+	"github.com/sasile/gohistogram"
 )
 
 type LatencyCollector struct {
@@ -10,41 +11,41 @@ type LatencyCollector struct {
 	ch_values chan time.Duration
 }
 
-func (self *LatencyCollector) New(n int, alpha float64) chan time.Duration {
-	self.WeighHist = gohistogram.NewHistogram(50)
-	self.ch_values = make(chan time.Duration, 400000)
+func (r *LatencyCollector) New(n int, alpha float64) chan time.Duration {
+	r.WeighHist = gohistogram.NewHistogram(50)
+	r.ch_values = make(chan time.Duration, 400000)
 	go func() {
-		for v := range self.ch_values {
-			self.WeighHist.Add(float64(v.Nanoseconds() / 1000))
+		for v := range r.ch_values {
+			r.WeighHist.Add(float64(v.Nanoseconds() / 1000))
 		}
 	}()
-	return self.ch_values
+	return r.ch_values
 }
 
-func (self *LatencyCollector) Add(v time.Duration) {
-	self.ch_values <- v
+func (r *LatencyCollector) Add(v time.Duration) {
+	r.ch_values <- v
 }
 
-func (self *LatencyCollector) Get() ([]string, []int) {
-	return self.WeighHist.BarArray()
+func (r *LatencyCollector) Get() ([]string, []int) {
+	return r.WeighHist.BarArray()
 }
 
-func (self *LatencyCollector) GetResults() ([]string, []float64) {
-	return self.WeighHist.GetHistAsArray()
-
-}
-
-func (self *LatencyCollector) GetQuantile(q float64) float64 {
-	return self.WeighHist.CDF(q)
+func (r *LatencyCollector) GetResults() ([]string, []float64) {
+	return r.WeighHist.GetHistAsArray()
 
 }
 
-func (self *LatencyCollector) GetCount() float64 {
-	return self.WeighHist.Count()
+func (r *LatencyCollector) GetQuantile(q float64) float64 {
+	return r.WeighHist.CDF(q)
 
 }
 
-func (self *LatencyCollector) String() string {
-	return self.WeighHist.String()
+func (r *LatencyCollector) GetCount() float64 {
+	return r.WeighHist.Count()
+
+}
+
+func (r *LatencyCollector) String() string {
+	return r.WeighHist.String()
 
 }

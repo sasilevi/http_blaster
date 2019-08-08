@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"github.com/v3io/http_blaster/httpblaster/config"

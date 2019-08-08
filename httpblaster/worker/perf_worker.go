@@ -24,7 +24,7 @@ import (
 	"sync"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 	//"time"
 )
@@ -40,8 +40,8 @@ func (w *PerfWorker) UseBase(c Base) {
 }
 
 // RunWorker :  worker run method
-func (w *PerfWorker) RunWorker(chResp chan *request_generators.Response,
-	chReq chan *request_generators.Request,
+func (w *PerfWorker) RunWorker(chResp chan *requestgenerators.Response,
+	chReq chan *requestgenerators.Request,
 	wg *sync.WaitGroup, releaseReq bool,
 	countSubmitted *tui.Counter,
 	//ch_latency chan time.Duration,
@@ -55,8 +55,8 @@ func (w *PerfWorker) RunWorker(chResp chan *request_generators.Response,
 		log.Info("Running Performance workers")
 	})
 
-	response := request_generators.AcquireResponse()
-	defer request_generators.ReleaseResponse(response)
+	response := requestgenerators.AcquireResponse()
+	defer requestgenerators.ReleaseResponse(response)
 	for req := range chReq {
 		reqType.Do(func() {
 			w.Results.Method = string(req.Request.Header.Method())
@@ -69,7 +69,7 @@ func (w *PerfWorker) RunWorker(chResp chan *request_generators.Response,
 
 		//ch_statuses <- response.Response.StatusCode()
 		//ch_latency <- d
-		request_generators.ReleaseRequest(req)
+		requestgenerators.ReleaseRequest(req)
 		response.Response.Reset()
 	}
 	log.Debugln("closing hist")

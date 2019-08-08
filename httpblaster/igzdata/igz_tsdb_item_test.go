@@ -1,4 +1,4 @@
-package igz_data
+package igzdata
 
 import (
 	"fmt"
@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var item2 = IgzTSDBItem{}
@@ -15,14 +16,14 @@ var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 var metric = randSeq(10)
 var lables = map[string]string{"dc": "7", "hostname": "myhosts"}
 var timestamp = NowAsUnixMilli()
-var float_val = randFloat(0, rand.Float64())
-var lable_key = "lable"
-var lable_val = "lable_value"
+var floatVal = randFloat(0, rand.Float64())
+var lableKey = "lable"
+var lableVal = "lableValue"
 
 func init() {
 	item2.InsertMetric(metric)
-	item2.InsertLable(lable_key, lable_val)
-	item2.InsertSample(timestamp, float_val)
+	item2.InsertLable(lableKey, lableVal)
+	item2.InsertSample(timestamp, floatVal)
 
 	fmt.Println(item2.Samples)
 	/* load test data */
@@ -33,12 +34,12 @@ func Test_igz_tsdb_item_v2_init(t *testing.T) {
 }
 
 func Test_igz_tsdb_item_v2_lables(t *testing.T) {
-	assert.Equal(t, lable_val, item2.Labels[lable_key], "they should be equal")
+	assert.Equal(t, lableVal, item2.Labels[lableKey], "they should be equal")
 }
 
 func Test_igz_tsdb_item_v2_sample(t *testing.T) {
 	assert.Equal(t, timestamp, item2.Samples[0].T, "they should be equal")
-	assert.Equal(t, float_val, item2.Samples[0].V["n"], "they should be equal")
+	assert.Equal(t, floatVal, item2.Samples[0].V["n"], "they should be equal")
 }
 
 func Test__igz_tsdb_item_v2_convert(t *testing.T) {
@@ -47,8 +48,8 @@ func Test__igz_tsdb_item_v2_convert(t *testing.T) {
 
 func NowAsUnixMilli() string {
 	ts := time.Now().UnixNano() / 1e6
-	ts_str := strconv.FormatInt(ts, 10)
-	return ts_str
+	tsStr := strconv.FormatInt(ts, 10)
+	return tsStr
 }
 
 func randSeq(n int) string {

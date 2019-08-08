@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"bytes"
@@ -52,7 +52,7 @@ func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.
 	}
 	req := AcquireRequest()
 	p.PrepareRequest(contentType, p.workload.Header, string(p.workload.Type),
-		p.base_uri, string(payload), host, req.Request)
+		p.baseURI, string(payload), host, req.Request)
 	req.Request.Header.Add("Host", p.Host)
 	req.Request.Header.Add("User-Agent", "http_blaster")
 	done := make(chan struct{})
@@ -112,7 +112,7 @@ func (p *PerformanceGenerator) genFilesURI(fileIndex int, count int, random bool
 		if random {
 			for {
 				n := rand.Intn(count)
-				ch <- fmt.Sprintf("%s_%d", p.base_uri, n+fileIndex)
+				ch <- fmt.Sprintf("%s_%d", p.baseURI, n+fileIndex)
 			}
 		} else {
 			filePref := fileIndex
@@ -120,7 +120,7 @@ func (p *PerformanceGenerator) genFilesURI(fileIndex int, count int, random bool
 				if filePref == fileIndex+count {
 					filePref = fileIndex
 				}
-				ch <- fmt.Sprintf("%s_%d", p.base_uri, filePref)
+				ch <- fmt.Sprintf("%s_%d", p.baseURI, filePref)
 				filePref++
 			}
 		}

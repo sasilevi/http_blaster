@@ -31,7 +31,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 	"github.com/valyala/fasthttp"
 )
@@ -72,7 +72,7 @@ func (w *IngestWorker) dumpRequests(chDump chan *fasthttp.Request, dumpLocation 
 		if err != nil {
 			log.Errorf("Fail to open file %v for request dump: %v", filePath, err.Error())
 		} else {
-			rdump := &request_generators.RequestDump{}
+			rdump := &requestgenerators.RequestDump{}
 			rdump.Host = string(r.Host())
 			rdump.Method = string(r.Header.Method())
 			rdump.Body = string(r.Body())
@@ -93,8 +93,8 @@ func (w *IngestWorker) dumpRequests(chDump chan *fasthttp.Request, dumpLocation 
 }
 
 //RunWorker : worker run function
-func (w *IngestWorker) RunWorker(chResp chan *request_generators.Response,
-	chReq chan *request_generators.Request,
+func (w *IngestWorker) RunWorker(chResp chan *requestgenerators.Response,
+	chReq chan *requestgenerators.Request,
 	wg *sync.WaitGroup, releaseReq bool,
 	countSubmitted *tui.Counter,
 	//ch_latency chan time.Duration,
@@ -105,8 +105,8 @@ func (w *IngestWorker) RunWorker(chResp chan *request_generators.Response,
 	w.countSubmitted = countSubmitted
 	var onceSetRequest sync.Once
 	var oncePrepare sync.Once
-	var request *request_generators.Request
-	submitRequest := request_generators.AcquireRequest()
+	var request *requestgenerators.Request
+	submitRequest := requestgenerators.AcquireRequest()
 	var reqType sync.Once
 	var chDump chan *fasthttp.Request
 	var syncDump sync.WaitGroup
@@ -144,7 +144,7 @@ func (w *IngestWorker) RunWorker(chResp chan *request_generators.Response,
 
 		var err error
 		var duration time.Duration
-		response := request_generators.AcquireResponse()
+		response := requestgenerators.AcquireResponse()
 	LOOP:
 		for i := 0; i < w.retryCount; i++ {
 
@@ -189,10 +189,10 @@ func (w *IngestWorker) RunWorker(chResp chan *request_generators.Response,
 			response.RequestURI = string(submitRequest.Request.RequestURI())
 			chResp <- response
 		} else {
-			request_generators.ReleaseResponse(response)
+			requestgenerators.ReleaseResponse(response)
 		}
 		if releaseReq {
-			request_generators.ReleaseRequest(req)
+			requestgenerators.ReleaseRequest(req)
 		}
 	}
 	if dumpRequests {

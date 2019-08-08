@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"context"
@@ -96,7 +96,7 @@ func (ol *Onelink) GenerateRequests(global config.Global, wl config.Workload, tl
 
 	req := AcquireRequest()
 	ol.PrepareRequest(contentType, ol.workload.Header, string(ol.workload.Type),
-		ol.base_uri, string(payload), host, req.Request)
+		ol.baseURI, string(payload), host, req.Request)
 
 	done := make(chan struct{})
 	go func() {

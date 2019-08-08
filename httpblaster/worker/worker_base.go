@@ -16,7 +16,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/histogram"
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 	"github.com/valyala/fasthttp"
 )
@@ -173,7 +173,7 @@ func (w *Base) send(req *fasthttp.Request, resp *fasthttp.Response,
 	// return timeout, nil
 }
 
-func (w *Base) sendRequest(req *request_generators.Request, response *request_generators.Response) (time.Duration, error) {
+func (w *Base) sendRequest(req *requestgenerators.Request, response *requestgenerators.Response) (time.Duration, error) {
 	var (
 		code     int
 		err      error

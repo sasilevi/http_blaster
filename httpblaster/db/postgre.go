@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/lib/pq"
+	//
 	"github.com/sasilevi/uasurfer"
 )
 

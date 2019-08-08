@@ -28,7 +28,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 	responsehandlers "github.com/v3io/http_blaster/httpblaster/responseHandlers"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 	"github.com/v3io/http_blaster/httpblaster/worker"
@@ -76,7 +76,7 @@ type Executor struct {
 	DumpLocation     string
 }
 
-func (ex *Executor) loadResponseHandler(resp chan *request_generators.Response, wg *sync.WaitGroup) responsehandlers.IResponseHandler {
+func (ex *Executor) loadResponseHandler(resp chan *requestgenerators.Response, wg *sync.WaitGroup) responsehandlers.IResponseHandler {
 	handlerType := strings.ToLower(ex.Workload.ResponseHandler)
 	var rh responsehandlers.IResponseHandler
 
@@ -94,63 +94,63 @@ func (ex *Executor) loadResponseHandler(resp chan *request_generators.Response, 
 	return rh
 }
 
-func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
-	bool, chan *request_generators.Response) {
-	var reqGen request_generators.Generator
+func (ex *Executor) loadRequestGenerator() (chan *requestgenerators.Request,
+	bool, chan *requestgenerators.Response) {
+	var reqGen requestgenerators.Generator
 	var releaseReq = true
-	var chResponse chan *request_generators.Response
+	var chResponse chan *requestgenerators.Response
 
 	genType := strings.ToLower(ex.Workload.Generator)
 	switch genType {
-	case request_generators.PERFORMANCE:
-		reqGen = &request_generators.PerformanceGenerator{}
+	case requestgenerators.PERFORMANCE:
+		reqGen = &requestgenerators.PerformanceGenerator{}
 		if ex.Workload.FilesCount == 0 {
 			releaseReq = false
 		}
 		break
 
-	case request_generators.LINE2STREAM:
-		reqGen = &request_generators.Line2StreamGenerator{}
+	case requestgenerators.LINE2STREAM:
+		reqGen = &requestgenerators.Line2StreamGenerator{}
 		break
-	case request_generators.CSV2KV:
-		reqGen = &request_generators.Csv2KV{}
+	case requestgenerators.CSV2KV:
+		reqGen = &requestgenerators.Csv2KV{}
 		break
-	case request_generators.CSVUPDATEKV:
-		reqGen = &request_generators.CsvUpdateKV{}
+	case requestgenerators.CSVUPDATEKV:
+		reqGen = &requestgenerators.CsvUpdateKV{}
 		break
-	case request_generators.JSON2KV:
-		reqGen = &request_generators.Json2KV{}
+	case requestgenerators.JSON2KV:
+		reqGen = &requestgenerators.Json2KV{}
 		break
-	case request_generators.LINE2KV:
-		reqGen = &request_generators.Line2KvGenerator{}
+	case requestgenerators.LINE2KV:
+		reqGen = &requestgenerators.Line2KvGenerator{}
 		break
-	case request_generators.RESTORE:
-		reqGen = &request_generators.RestoreGenerator{}
+	case requestgenerators.RESTORE:
+		reqGen = &requestgenerators.RestoreGenerator{}
 		break
-	case request_generators.CSV2STREAM:
-		reqGen = &request_generators.CSV2StreamGenerator{}
+	case requestgenerators.CSV2STREAM:
+		reqGen = &requestgenerators.CSV2StreamGenerator{}
 		break
-	case request_generators.LINE2HTTP:
-		reqGen = &request_generators.Line2HttpGenerator{}
+	case requestgenerators.LINE2HTTP:
+		reqGen = &requestgenerators.Line2HttpGenerator{}
 		break
-	case request_generators.REPLAY:
-		reqGen = &request_generators.Replay{}
+	case requestgenerators.REPLAY:
+		reqGen = &requestgenerators.Replay{}
 		break
-	case request_generators.STREAM_GET:
-		reqGen = &request_generators.StreamGetGenerator{}
-		chResponse = make(chan *request_generators.Response)
-	case request_generators.CSV2TSDB:
-		reqGen = &request_generators.Csv2TSDB{}
+	case requestgenerators.STREAMGET:
+		reqGen = &requestgenerators.StreamGetGenerator{}
+		chResponse = make(chan *requestgenerators.Response)
+	case requestgenerators.CSV2TSDB:
+		reqGen = &requestgenerators.Csv2TSDB{}
 		break
-	case request_generators.STATS2TSDB:
-		reqGen = &request_generators.Stats2TSDB{}
+	case requestgenerators.STATS2TSDB:
+		reqGen = &requestgenerators.Stats2TSDB{}
 		break
-	case request_generators.ONELINK:
-		reqGen = &request_generators.Onelink{}
-		chResponse = make(chan *request_generators.Response)
+	case requestgenerators.ONELINK:
+		reqGen = &requestgenerators.Onelink{}
+		chResponse = make(chan *requestgenerators.Response)
 		break
-	case request_generators.IMPERSONATE:
-		reqGen = &request_generators.Impersonate{}
+	case requestgenerators.IMPERSONATE:
+		reqGen = &requestgenerators.Impersonate{}
 		break
 	default:
 		panic(fmt.Sprintf("unknown request generator %s", ex.Workload.Generator))
@@ -161,7 +161,7 @@ func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 	} else {
 		host = ex.Host
 	}
-	generatot := request_generators.BaseGenerator{}
+	generatot := requestgenerators.BaseGenerator{}
 	chReq := generatot.Run(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated, reqGen)
 
 	return chReq, releaseReq, chResponse
@@ -170,7 +170,7 @@ func (ex *Executor) loadRequestGenerator() (chan *request_generators.Request,
 // GetWorkerType : worker type from workload
 func (ex *Executor) GetWorkerType() worker.Type {
 	genType := strings.ToLower(ex.Workload.Generator)
-	if genType == request_generators.PERFORMANCE {
+	if genType == requestgenerators.PERFORMANCE {
 		return worker.Performance
 	}
 	return worker.Ingestion

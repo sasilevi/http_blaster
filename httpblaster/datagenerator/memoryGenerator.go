@@ -1,35 +1,39 @@
-package data_generator
+package datagenerator
 
 import (
 	"encoding/json"
 	"fmt"
+	"http_blaster/httpblaster/igz_data"
 	"strings"
 
 	//"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/mem"
-	"github.com/v3io/http_blaster/httpblaster/igz_data"
 	"os"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/shirou/gopsutil/mem"
 )
 
+// MemoryGenerator MemoryGenerator
 type MemoryGenerator struct {
 	Total     uint64
 	Availible uint64
 	Active    uint64
 }
 
-func (self *MemoryGenerator) GenerateRandomData(cpuNumber string) []string {
+//GenerateRandomData GenerateRandomData
+func (m *MemoryGenerator) GenerateRandomData(cpuNumber string) []string {
 	//stats, _ := cpu.Info()
 	//fmt.Println(stats)
 	v, _ := mem.VirtualMemory()
-	payloads := self.GenerateJsonArray(v, cpuNumber)
+	payloads := m.GenerateJSONArray(v, cpuNumber)
 	fmt.Println(strings.Join(payloads, ", "))
 	return payloads
 }
 
-func (self *MemoryGenerator) GenerateJsonByVal(timestamp string, colName string, val float64, cpuNumber string) string {
+//GenerateJSONByVal GenerateJSONByVal
+func (m *MemoryGenerator) GenerateJSONByVal(timestamp string, colName string, val float64, cpuNumber string) string {
 	//item :=igz_data.IgzTSDBItem{}
 	item := igz_data.IgzTSDBItem{}
 	item.InsertMetric("memory")
@@ -41,7 +45,8 @@ func (self *MemoryGenerator) GenerateJsonByVal(timestamp string, colName string,
 	return item.ToJsonString()
 }
 
-func (self *MemoryGenerator) GenerateJsonArray(v *mem.VirtualMemoryStat, cpuNumber string) []string {
+//GenerateJSONArray GenerateJSONArray
+func (m *MemoryGenerator) GenerateJSONArray(v *mem.VirtualMemoryStat, cpuNumber string) []string {
 	timestamp := NowAsUnixMilli()
 	arr := []string{}
 	val := make(map[string]interface{})
@@ -50,11 +55,12 @@ func (self *MemoryGenerator) GenerateJsonArray(v *mem.VirtualMemoryStat, cpuNumb
 	}
 	for s, vl := range val {
 		f, _ := getFloat(vl)
-		arr = append(arr, self.GenerateJsonByVal(timestamp, s, f, cpuNumber))
+		arr = append(arr, m.GenerateJSONByVal(timestamp, s, f, cpuNumber))
 	}
 	return arr
 }
 
+//GetHostname get host name
 func GetHostname() string {
 	name, err := os.Hostname()
 	if err != nil {
@@ -76,8 +82,9 @@ func getFloat(unk interface{}) (float64, error) {
 	return fv.Float(), nil
 }
 
+// NowAsUnixMilli : now as unix mili
 func NowAsUnixMilli() string {
 	ts := time.Now().UnixNano() / 1e6
-	ts_str := strconv.FormatInt(ts, 10)
-	return ts_str
+	tsStr := strconv.FormatInt(ts, 10)
+	return tsStr
 }

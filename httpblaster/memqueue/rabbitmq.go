@@ -10,6 +10,7 @@ import (
 	"github.com/v3io/http_blaster/httpblaster/dto"
 )
 
+//RabbitMQ rabbit mq obj
 type RabbitMQ struct {
 	queueName string
 	server    string
@@ -17,6 +18,7 @@ type RabbitMQ struct {
 	user      string
 }
 
+//New : new rabbit mq obj
 func New(queueName, server, port, user string) *RabbitMQ {
 	return &RabbitMQ{
 		queueName: queueName,
@@ -26,6 +28,7 @@ func New(queueName, server, port, user string) *RabbitMQ {
 	}
 }
 
+//NewClient : new client connection to rmq
 func (rmq *RabbitMQ) NewClient() chan *dto.UserAgentMessage {
 	chUsrAgent := make(chan *dto.UserAgentMessage)
 

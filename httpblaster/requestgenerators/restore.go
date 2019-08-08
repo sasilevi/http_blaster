@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"bufio"
@@ -32,11 +32,11 @@ type BackupItem struct {
 	Uri     string
 }
 
-func (self *RestoreGenerator) UseCommon(c RequestCommon) {
+func (r *RestoreGenerator) UseCommon(c RequestCommon) {
 
 }
 
-func (self *RestoreGenerator) LoadSchema(file_path string) (error, map[string]interface{}) {
+func (r *RestoreGenerator) LoadSchema(file_path string) (error, map[string]interface{}) {
 	type backup_schema struct {
 		records map[interface{}]interface{}
 		inode   map[interface{}]interface{}
@@ -68,7 +68,7 @@ type items_s struct {
 	Items            []map[string]map[string]interface{}
 }
 
-func (self *RestoreGenerator) generate_items(ch_lines chan []byte, collection_ids map[string]interface{}) chan *BackupItem {
+func (r *RestoreGenerator) generateItems(ch_lines chan []byte, collection_ids map[string]interface{}) chan *BackupItem {
 	ch_items := make(chan *BackupItem, 100000)
 	wg := sync.WaitGroup{}
 	routines := 1 //runtime.NumCPU()/2
@@ -93,7 +93,7 @@ func (self *RestoreGenerator) generate_items(ch_lines chan []byte, collection_id
 							log.Errorf("Fail to get dir name for collection id: %v", collection_id)
 							continue
 						}
-						for _, attr := range self.emd_ignore_attrs {
+						for _, attr := range r.emd_ignore_attrs {
 							delete(i, attr)
 						}
 
@@ -107,7 +107,7 @@ func (self *RestoreGenerator) generate_items(ch_lines chan []byte, collection_id
 							payload.WriteString(`{"Item": `)
 							payload.Write(j)
 							payload.WriteString(`}`)
-							ch_items <- &BackupItem{Uri: self.base_uri + dir_name.(string) + item_name.(string),
+							ch_items <- &BackupItem{Uri: r.baseURI + dir_name.(string) + item_name.(string),
 								Payload: payload.Bytes()}
 						}
 					}
@@ -120,7 +120,7 @@ func (self *RestoreGenerator) generate_items(ch_lines chan []byte, collection_id
 	return ch_items
 }
 
-func (self *RestoreGenerator) generate(ch_req chan *Request,
+func (r *RestoreGenerator) generate(ch_req chan *Request,
 	ch_items chan *BackupItem, host string) {
 	defer close(ch_req)
 	wg := sync.WaitGroup{}
@@ -132,7 +132,7 @@ func (self *RestoreGenerator) generate(ch_req chan *Request,
 			defer wg.Done()
 			for item := range ch_items {
 				req := AcquireRequest()
-				self.PrepareRequestBytes(contentType, self.workload.Header, "PUT",
+				r.PrepareRequestBytes(contentType, r.workload.Header, "PUT",
 					item.Uri, item.Payload, host, req.Request)
 				ch_req <- req
 			}
@@ -143,9 +143,9 @@ func (self *RestoreGenerator) generate(ch_req chan *Request,
 	log.Println("generators done")
 }
 
-func (self *RestoreGenerator) line_reader() chan []byte {
+func (r *RestoreGenerator) line_reader() chan []byte {
 	ch_lines := make(chan []byte, 24)
-	ch_files := self.FilesScan(self.workload.Payload)
+	ch_files := r.FilesScan(r.workload.Payload)
 	go func() {
 		for f := range ch_files {
 			if file, err := os.Open(f); err == nil {
@@ -174,30 +174,30 @@ func (self *RestoreGenerator) line_reader() chan []byte {
 	return ch_lines
 }
 
-func (self *RestoreGenerator) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
-	self.workload = wl
+func (r *RestoreGenerator) GenerateRequests(global config.Global, wl config.Workload, tls_mode bool, host string, ret_ch chan *Response, worker_qd int) chan *Request {
+	r.workload = wl
 	ch_req := make(chan *Request, worker_qd)
 
-	if self.workload.Header == nil {
-		self.workload.Header = make(map[string]string)
+	if r.workload.Header == nil {
+		r.workload.Header = make(map[string]string)
 	}
-	self.emd_ignore_attrs = global.IgnoreAttrs
+	r.emd_ignore_attrs = global.IgnoreAttrs
 
-	self.workload.Header["X-v3io-function"] = "PutItem"
+	r.workload.Header["X-v3io-function"] = "PutItem"
 
-	self.SetBaseUri(tls_mode, host, self.workload.Container, self.workload.Target)
+	r.SetBaseUri(tls_mode, host, r.workload.Container, r.workload.Target)
 
-	err, inode_map := self.LoadSchema(wl.Schema)
+	err, inode_map := r.LoadSchema(wl.Schema)
 
 	if err != nil {
 		panic(err)
 	}
 
-	ch_lines := self.line_reader()
+	ch_lines := r.line_reader()
 
-	ch_items := self.generate_items(ch_lines, inode_map)
+	ch_items := r.generateItems(ch_lines, inode_map)
 
-	go self.generate(ch_req, ch_items, host)
+	go r.generate(ch_req, ch_items, host)
 
 	return ch_req
 }

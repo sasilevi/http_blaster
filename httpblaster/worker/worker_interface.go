@@ -3,7 +3,7 @@ package worker
 import (
 	"sync"
 
-	"github.com/v3io/http_blaster/httpblaster/request_generators"
+	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 	//"time"
 )
@@ -14,8 +14,8 @@ type Worker interface {
 	Init(lazy int)
 	GetResults() Results
 	GetHist() map[int64]int
-	RunWorker(chResp chan *request_generators.Response,
-		chReq chan *request_generators.Request,
+	RunWorker(chResp chan *requestgenerators.Response,
+		chReq chan *requestgenerators.Request,
 		wg *sync.WaitGroup,
 		releaseReq bool,
 		countSubmitted *tui.Counter,

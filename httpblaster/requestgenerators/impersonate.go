@@ -1,4 +1,4 @@
-package request_generators
+package requestgenerators
 
 import (
 	"errors"
@@ -67,7 +67,7 @@ func (ol *Impersonate) GenerateRequests(global config.Global, wl config.Workload
 
 	req := AcquireRequest()
 	ol.PrepareRequest(contentType, ol.workload.Header, string(ol.workload.Type),
-		ol.base_uri, string(payload), host, req.Request)
+		ol.baseURI, string(payload), host, req.Request)
 
 	done := make(chan struct{})
 	go func() {
