@@ -14,7 +14,7 @@ type Bquery struct {
 }
 
 //Query : execute the query string on the project id
-func (b *Bquery) Query(ctx context.Context, projectID, queryStr, certs string) chan interface{} {
+func (b *Bquery) Query(ctx context.Context, projectID, queryStr, certs, retValue string) chan interface{} {
 	chItems := make(chan interface{}, 2000)
 	go func() {
 		defer close(chItems)
@@ -43,8 +43,8 @@ func (b *Bquery) Query(ctx context.Context, projectID, queryStr, certs string) c
 			if err != nil {
 				log.Println(err.Error())
 			}
-			if values["user_agent"] != nil {
-				chItems <- values["user_agent"].(string)
+			if values[retValue] != nil {
+				chItems <- values[retValue].(string)
 			} else {
 				log.Println("recieved nil value from bigquery: ", values)
 			}

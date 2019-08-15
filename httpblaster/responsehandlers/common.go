@@ -2,6 +2,7 @@ package responsehandlers
 
 // response handler types
 const (
-	REDIRECT = "redirect"
-	DEFAULT  = "default"
+	REDIRECT     = "redirect"
+	JSON_COMPARE = "json_compare"
+	DEFAULT      = "default"
 )

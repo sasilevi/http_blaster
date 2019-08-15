@@ -85,6 +85,8 @@ func (ex *Executor) loadResponseHandler(resp chan *requestgenerators.Response, w
 		rh = &responsehandlers.NoneHandler{}
 	case responsehandlers.REDIRECT:
 		rh = &responsehandlers.RedirectResponseHandler{}
+	case responsehandlers.JSON_COMPARE:
+		rh = &responsehandlers.JSONCompareResponseHandler{}
 	case responsehandlers.DEFAULT:
 		rh = &responsehandlers.Default{}
 	default:
@@ -147,6 +149,10 @@ func (ex *Executor) loadRequestGenerator() (chan *requestgenerators.Request,
 		break
 	case requestgenerators.ONELINK:
 		reqGen = &requestgenerators.Onelink{}
+		chResponse = make(chan *requestgenerators.Response)
+		break
+	case requestgenerators.COMPARE:
+		reqGen = &requestgenerators.Compare{}
 		chResponse = make(chan *requestgenerators.Response)
 		break
 	case requestgenerators.IMPERSONATE:

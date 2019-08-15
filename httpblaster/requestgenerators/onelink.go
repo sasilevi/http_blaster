@@ -80,7 +80,7 @@ func (ol *Onelink) GenerateRequests(global config.Global, wl config.Workload, tl
 	}
 	bquery := &bquery.Bquery{}
 	ctx := context.Background()
-	chUsrAgent := bquery.Query(ctx, wl.BQProjectID, wl.Query, global.BqueryCert)
+	chUsrAgent := bquery.Query(ctx, wl.BQProjectID, wl.Query, global.BqueryCert, "user_agent")
 
 	// chUsrAgent := rabbitmq.NewClient()
 	ol.workload = wl

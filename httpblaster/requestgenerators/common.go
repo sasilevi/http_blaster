@@ -27,6 +27,7 @@ const (
 	STATS2TSDB  = "stats2tsdb"
 	ONELINK     = "onelink"
 	IMPERSONATE = "impersonate"
+	COMPARE     = "compare"
 )
 
 //RequestCommon : commom reqest generator code
