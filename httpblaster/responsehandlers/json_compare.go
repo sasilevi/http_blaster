@@ -1,7 +1,6 @@
 package responsehandlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -24,15 +23,6 @@ type JSONCompareResponseHandler struct {
 	results          map[string]*errorInfo
 	logfile          *os.File
 }
-
-// type errorInfo struct {
-// 	Status       int
-// 	url1         string
-// 	url2         string
-// 	compareError bool
-// 	requestError bool
-// 	statusCode   int
-// }
 
 func (r *JSONCompareResponseHandler) startCompareLog() {
 	filename := "compare_out.html"
@@ -104,14 +94,14 @@ func (r *JSONCompareResponseHandler) compareJSONResponces(responce chan *matchRe
 }
 
 func (r *JSONCompareResponseHandler) compareJSONResponses(r1, r2 *requestgenerators.Response) error {
-	var o1 interface{}
-	var o2 interface{}
+	// var o1 interface{}
+	// var o2 interface{}
 
 	defer requestgenerators.ReleaseResponse(r1)
 	defer requestgenerators.ReleaseResponse(r2)
 
-	json.Unmarshal(r1.Response.Body(), &o1)
-	json.Unmarshal(r2.Response.Body(), &o2)
+	// json.Unmarshal(r1.Response.Body(), &o1)
+	// json.Unmarshal(r2.Response.Body(), &o2)
 	var first = r1
 	var second = r2
 	ops := jsondiff.DefaultHTMLOptions()
@@ -120,11 +110,13 @@ func (r *JSONCompareResponseHandler) compareJSONResponses(r1, r2 *requestgenerat
 		second = r1
 	}
 
-	if !reflect.DeepEqual(o1, o2) {
-		diff, err := jsondiff.Compare(first.Response.Body(), second.Response.Body(), &ops)
+	// if !reflect.DeepEqual(o1, o2) {
+	diff, err := jsondiff.Compare(first.Response.Body(), second.Response.Body(), &ops)
+	if diff != jsondiff.FullMatch {
 		r.writeCompareDiff(first.RequestURI, second.RequestURI, diff.String(), err)
-		r.Errors++
+		// r.Errors++
 	}
+	// }
 
 	return nil
 }
