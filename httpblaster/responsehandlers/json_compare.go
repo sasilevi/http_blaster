@@ -94,14 +94,8 @@ func (r *JSONCompareResponseHandler) compareJSONResponces(responce chan *matchRe
 }
 
 func (r *JSONCompareResponseHandler) compareJSONResponses(r1, r2 *requestgenerators.Response) error {
-	// var o1 interface{}
-	// var o2 interface{}
-
 	defer requestgenerators.ReleaseResponse(r1)
 	defer requestgenerators.ReleaseResponse(r2)
-
-	// json.Unmarshal(r1.Response.Body(), &o1)
-	// json.Unmarshal(r2.Response.Body(), &o2)
 	var first = r1
 	var second = r2
 	ops := jsondiff.DefaultHTMLOptions()
@@ -109,15 +103,10 @@ func (r *JSONCompareResponseHandler) compareJSONResponses(r1, r2 *requestgenerat
 		first = r2
 		second = r1
 	}
-
-	// if !reflect.DeepEqual(o1, o2) {
 	diff, err := jsondiff.Compare(first.Response.Body(), second.Response.Body(), &ops)
 	if diff != jsondiff.FullMatch {
 		r.writeCompareDiff(first.RequestURI, second.RequestURI, diff.String(), err)
-		// r.Errors++
 	}
-	// }
-
 	return nil
 }
 
