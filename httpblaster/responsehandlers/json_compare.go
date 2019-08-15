@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/nsf/jsondiff"
 	"github.com/v3io/http_blaster/httpblaster/config"
@@ -46,6 +48,11 @@ func (r *JSONCompareResponseHandler) startCompareLog() {
 
 }
 
+type matchResponces struct {
+	r1 *requestgenerators.Response
+	r2 *requestgenerators.Response
+}
+
 func (r *JSONCompareResponseHandler) stopCompareLog() {
 
 	r.logfile.WriteString("\n</code>")
@@ -62,18 +69,37 @@ func (r *JSONCompareResponseHandler) writeCompareDiff(v1, v2, diff, errorStr str
 func (r *JSONCompareResponseHandler) HandlerResponses(global config.Global, workload config.Workload, respCh chan *requestgenerators.Response) {
 	r.pendingResponses = make(map[interface{}]*requestgenerators.Response)
 	r.ErrorCounters = make(map[string]int64)
+	chMatchResponces := make(chan *matchResponces)
+	wg := sync.WaitGroup{}
+
 	r.startCompareLog()
 	defer r.stopCompareLog()
+
+	wg.Add(runtime.NumCPU())
+	for c := 0; c < runtime.NumCPU(); c++ {
+		go r.compareJSONResponces(chMatchResponces, &wg)
+	}
+
 	for resp := range respCh {
 		if resp.Response.StatusCode() != http.StatusOK {
 			r.Errors++
 		}
 		if _, ok := r.pendingResponses[resp.Cookie]; ok {
-			r.compareJSONResponses(r.pendingResponses[resp.Cookie], resp)
+			chMatchResponces <- &matchResponces{r1: r.pendingResponses[resp.Cookie], r2: resp}
+			// r.compareJSONResponses(r.pendingResponses[resp.Cookie], resp)
 			delete(r.pendingResponses, resp.Cookie)
 		} else {
 			r.pendingResponses[resp.Cookie] = resp
 		}
+	}
+	close(chMatchResponces)
+	wg.Wait()
+}
+
+func (r *JSONCompareResponseHandler) compareJSONResponces(responce chan *matchResponces, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for c := range responce {
+		r.compareJSONResponses(c.r1, c.r2)
 	}
 }
 
@@ -105,7 +131,7 @@ func (r *JSONCompareResponseHandler) compareJSONResponses(r1, r2 *requestgenerat
 
 // Report : report redirect responses assertions
 func (r *JSONCompareResponseHandler) Report() string {
-	return "TODO: impliment JSON Compare report"
+	return "TODO: implement JSON Compare report"
 }
 
 // Counters : returns counters for wrong link and not found
