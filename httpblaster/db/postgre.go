@@ -3,9 +3,10 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	//
 	"github.com/sasilevi/uasurfer"
@@ -13,14 +14,18 @@ import (
 
 // PostgresDB : postgres report
 type PostgresDB struct {
-	dbName   string
-	user     string
-	password string
-	db       *sql.DB
-	host     string
-	port     int32
-	uaStmt   *sql.Stmt
-	bodyStmt *sql.Stmt
+	dbName      string
+	user        string
+	password    string
+	db          *sql.DB
+	host        string
+	port        int32
+	uaStmt      *sql.Stmt
+	bodyStmt    *sql.Stmt
+	compareStmt *sql.Stmt
+	submitted   uint64
+	txn         *sql.Tx
+	stmt        *sql.Stmt
 }
 
 var testTime = time.Now()
@@ -53,6 +58,24 @@ SET row_security = off;
 SET default_tablespace = '';
 
 SET default_with_oids = false;
+
+--
+-- Name: api_compare; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.api_compare (
+    uri_v3 text NOT NULL,
+    uri_v4 text NOT NULL,
+    match text NOT NULL,
+    diff text NOT NULL,
+    status_code_v3 integer NOT NULL,
+    status_code_v4 integer NOT NULL,
+    duration_v3 bigint NOT NULL,
+    duration_v4 bigint NOT NULL
+);
+
+
+ALTER TABLE public.api_compare OWNER TO postgres;
 
 --
 -- Name: responses; Type: TABLE; Schema: public; Owner: ownerPlaceholder
@@ -141,6 +164,27 @@ func (p *PostgresDB) InsertUserAgentInfo(userAgent string, id uint32, target str
 	}
 }
 
+// InserAPICompareInfo : Inserts api compare results into postgress db
+func (p *PostgresDB) InserAPICompareInfo(v3URI, v4URI, match, diff string, statusCodeV3, statusCodeV4 int, durationV3, durationV4 time.Duration) {
+	var err error
+	if p.submitted%100 == 0 {
+		if p.submitted > 0 {
+			p.txn.Commit()
+		}
+		p.txn, err = p.db.Begin()
+		if err != nil {
+			log.Fatal(err)
+		}
+		p.stmt, err = p.txn.Prepare("INSERT INTO api_compare (uri_v3, uri_v4, match, diff, status_code_v3, status_code_v4, duration_v3, duration_v4) VALUES ($1::text, $2::text, $3::text, $4::text, $5::integer, $6::integer, $7::bigint, $8::bigint)")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	p.stmt.Exec(v3URI, v4URI, match, diff, statusCodeV3, statusCodeV4, durationV3, durationV4)
+	p.submitted++
+}
+
 func (p *PostgresDB) open() {
 	err := p.openDB()
 	if err != nil {
@@ -158,6 +202,9 @@ func (p *PostgresDB) open() {
 
 // Close :  close db
 func (p *PostgresDB) Close() {
+	if p.submitted > 0 && p.txn != nil {
+		p.txn.Commit()
+	}
 	p.db.Close()
 }
 
@@ -219,6 +266,9 @@ func New(host string, port int32, dbname, user, password string) *PostgresDB {
 	if err != nil {
 		panic(err.Error())
 	}
-
+	p.compareStmt, err = p.db.Prepare("INSERT INTO api_compare (uri_v3, uri_v4, match, diff, status_code_v3, status_code_v4, duration_v3, duration_v4) VALUES ($1::text, $2::text, $3::text, $4::text, $5::integer, $6::integer, $7::bigint, $8::bigint)")
+	if err != nil {
+		panic(err.Error())
+	}
 	return p
 }

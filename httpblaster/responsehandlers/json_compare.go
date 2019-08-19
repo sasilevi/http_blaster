@@ -14,6 +14,7 @@ import (
 	"github.com/nsf/jsondiff"
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
+	"github.com/v3io/http_blaster/httpblaster/db"
 	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 )
 
@@ -36,6 +37,8 @@ type JSONCompareResponseHandler struct {
 	v4Benchmark               benchamrkResults
 	v3NonAttributionBenchmark benchamrkResults
 	v4NonAttributionBenchmark benchamrkResults
+	psql                      *db.PostgresDB
+	reportDb                  bool
 }
 
 func (r *JSONCompareResponseHandler) startCompareLog() {
@@ -90,6 +93,11 @@ func (r *JSONCompareResponseHandler) HandlerResponses(global config.Global, work
 	r.pendingResponses = make(map[interface{}]*requestgenerators.Response)
 	r.ErrorCounters = make(map[string]int64)
 	chMatchResponces := make(chan *matchResponces)
+	if global.DbHost != "" {
+		r.psql = db.New(global.DbHost, global.DbPort, global.DbName, global.DbUser, global.DbPassword)
+		r.reportDb = true
+		defer r.psql.Close()
+	}
 	wg := sync.WaitGroup{}
 
 	v3DurationCh := make(chan time.Duration)
@@ -143,7 +151,14 @@ func (r *JSONCompareResponseHandler) compareJSONResponses(v3DurationCh, v4Durati
 	defer requestgenerators.ReleaseResponse(r2)
 	var first = r1
 	var second = r2
-	ops := jsondiff.DefaultHTMLOptions()
+	// ops := jsondiff.DefaultHTMLOptions()
+
+	ops := jsondiff.Options{
+		Added:   jsondiff.Tag{Begin: `<span style="background-color: #8bff7f">Added:`, End: `</span>`},
+		Removed: jsondiff.Tag{Begin: `<span style="background-color: #fd7f7f">Removed`, End: `</span>`},
+		Changed: jsondiff.Tag{Begin: `<span style="background-color: #fcff7f">Changed`, End: `</span>`},
+		Indent:  "    ",
+	}
 	if !strings.Contains(r1.RequestURI, "v3") {
 		first = r2
 		second = r1
@@ -162,6 +177,9 @@ func (r *JSONCompareResponseHandler) compareJSONResponses(v3DurationCh, v4Durati
 	diff, err := jsondiff.Compare(first.Response.Body(), second.Response.Body(), &ops)
 	if diff != jsondiff.FullMatch {
 		r.writeCompareDiff(first.RequestURI, second.RequestURI, diff.String(), err)
+		if r.reportDb {
+			r.psql.InserAPICompareInfo(first.RequestURI, second.RequestURI, diff.String(), err, first.Response.StatusCode(), second.Response.StatusCode(), first.Duration, second.Duration)
+		}
 	}
 
 	return nil
