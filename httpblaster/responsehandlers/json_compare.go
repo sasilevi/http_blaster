@@ -8,20 +8,34 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/nsf/jsondiff"
+	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
 )
 
+type benchamrkResults struct {
+	Min   time.Duration
+	Max   time.Duration
+	Avg   time.Duration
+	Count uint64
+}
+
 // JSONCompareResponseHandler : response handler for redirect test
 type JSONCompareResponseHandler struct {
 	BaseResponseHandler
-	pendingResponses map[interface{}]*requestgenerators.Response
-	ErrorCounters    map[string]int64
-	Errors           int64
-	results          map[string]*errorInfo
-	logfile          *os.File
+	pendingResponses          map[interface{}]*requestgenerators.Response
+	ErrorCounters             map[string]int64
+	Errors                    int64
+	results                   map[string]*errorInfo
+	logfile                   *os.File
+	v3Benchmark               benchamrkResults
+	v4Benchmark               benchamrkResults
+	v3NonAttributionBenchmark benchamrkResults
+	v4NonAttributionBenchmark benchamrkResults
 }
 
 func (r *JSONCompareResponseHandler) startCompareLog() {
@@ -51,6 +65,22 @@ func (r *JSONCompareResponseHandler) stopCompareLog() {
 	r.logfile.Close()
 }
 
+func (r *JSONCompareResponseHandler) calcBenchmark(resDuration chan time.Duration, benchmark *benchamrkResults) {
+	for d := range resDuration {
+		atomic.AddUint64(&benchmark.Count, 1)
+		benchmark.Count++
+		benchmark.Avg = benchmark.Avg + (d-benchmark.Avg)/time.Duration(benchmark.Count)
+		if benchmark.Min == 0 {
+			benchmark.Min = d
+		}
+		if d > benchmark.Max {
+			benchmark.Max = d
+		} else if d < benchmark.Min {
+			benchmark.Min = d
+		}
+	}
+}
+
 func (r *JSONCompareResponseHandler) writeCompareDiff(v1, v2, diff, errorStr string) {
 	r.logfile.WriteString(fmt.Sprintf("\nSource:%v\nCompare:%v\nDiff:%v\n%v", v1, v2, diff, errorStr))
 }
@@ -62,16 +92,31 @@ func (r *JSONCompareResponseHandler) HandlerResponses(global config.Global, work
 	chMatchResponces := make(chan *matchResponces)
 	wg := sync.WaitGroup{}
 
+	v3DurationCh := make(chan time.Duration)
+	defer close(v3DurationCh)
+	v4DurationCh := make(chan time.Duration)
+	defer close(v4DurationCh)
+	v3NonAttributionDurationCh := make(chan time.Duration)
+	defer close(v3NonAttributionDurationCh)
+	v4NonAttributionDurationCh := make(chan time.Duration)
+	defer close(v4NonAttributionDurationCh)
+
+	go r.calcBenchmark(v3DurationCh, &r.v3Benchmark)
+	go r.calcBenchmark(v4DurationCh, &r.v4Benchmark)
+	go r.calcBenchmark(v3NonAttributionDurationCh, &r.v3NonAttributionBenchmark)
+	go r.calcBenchmark(v4NonAttributionDurationCh, &r.v4NonAttributionBenchmark)
+
 	r.startCompareLog()
 	defer r.stopCompareLog()
 
 	wg.Add(runtime.NumCPU())
 	for c := 0; c < runtime.NumCPU(); c++ {
-		go r.compareJSONResponces(chMatchResponces, &wg)
+		go r.compareJSONResponces(v3DurationCh, v4DurationCh, v3NonAttributionDurationCh, v4NonAttributionDurationCh, chMatchResponces, &wg)
 	}
 
 	for resp := range respCh {
 		if resp.Response.StatusCode() != http.StatusOK {
+			log.Println("Failed on uri:", resp.RequestURI)
 			r.Errors++
 		}
 		if _, ok := r.pendingResponses[resp.Cookie]; ok {
@@ -86,14 +131,14 @@ func (r *JSONCompareResponseHandler) HandlerResponses(global config.Global, work
 	wg.Wait()
 }
 
-func (r *JSONCompareResponseHandler) compareJSONResponces(responce chan *matchResponces, wg *sync.WaitGroup) {
+func (r *JSONCompareResponseHandler) compareJSONResponces(v3DurationCh, v4DurationCh, v3NonAttributionDurationCh, v4NonAttributionDurationCh chan time.Duration, responce chan *matchResponces, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for c := range responce {
-		r.compareJSONResponses(c.r1, c.r2)
+		r.compareJSONResponses(v3DurationCh, v4DurationCh, v3NonAttributionDurationCh, v4NonAttributionDurationCh, c.r1, c.r2)
 	}
 }
 
-func (r *JSONCompareResponseHandler) compareJSONResponses(r1, r2 *requestgenerators.Response) error {
+func (r *JSONCompareResponseHandler) compareJSONResponses(v3DurationCh, v4DurationCh, v3NonAttributionDurationCh, v4NonAttributionDurationCh chan time.Duration, r1, r2 *requestgenerators.Response) error {
 	defer requestgenerators.ReleaseResponse(r1)
 	defer requestgenerators.ReleaseResponse(r2)
 	var first = r1
@@ -103,15 +148,31 @@ func (r *JSONCompareResponseHandler) compareJSONResponses(r1, r2 *requestgenerat
 		first = r2
 		second = r1
 	}
+	if second.Response.StatusCode() == http.StatusOK {
+		v3DurationCh <- first.Duration
+		v4DurationCh <- second.Duration
+	} else {
+		v3NonAttributionDurationCh <- first.Duration
+		v4NonAttributionDurationCh <- second.Duration
+	}
+	if second.Duration > time.Duration(time.Second*8) {
+		log.Errorln(second.RequestURI, " duration:", second.Duration)
+	}
+
 	diff, err := jsondiff.Compare(first.Response.Body(), second.Response.Body(), &ops)
 	if diff != jsondiff.FullMatch {
 		r.writeCompareDiff(first.RequestURI, second.RequestURI, diff.String(), err)
 	}
+
 	return nil
 }
 
 // Report : report redirect responses assertions
 func (r *JSONCompareResponseHandler) Report() string {
+	log.Println("v3 benchmark:\nMin", r.v3Benchmark.Min, "\nMax:", r.v3Benchmark.Max, "\nAvg:", r.v3Benchmark.Avg)
+	log.Println("v4 benchmark:\nMin", r.v4Benchmark.Min, "\nMax:", r.v4Benchmark.Max, "\nAvg:", r.v4Benchmark.Avg)
+	log.Println("v3 non attribution benchmark:\nMin", r.v3NonAttributionBenchmark.Min, "\nMax:", r.v3NonAttributionBenchmark.Max, "\nAvg:", r.v3NonAttributionBenchmark.Avg)
+	log.Println("v4 non attribution benchmark:\nMin", r.v4NonAttributionBenchmark.Min, "\nMax:", r.v4NonAttributionBenchmark.Max, "\nAvg:", r.v4NonAttributionBenchmark.Avg)
 	return "TODO: implement JSON Compare report"
 }
 
