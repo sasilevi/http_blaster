@@ -175,13 +175,13 @@ func (p *PostgresDB) InserAPICompareInfo(v3URI, v4URI, match, diff string, statu
 		if err != nil {
 			log.Fatal(err)
 		}
-		p.stmt, err = p.txn.Prepare("INSERT INTO api_compare (uri_v3, uri_v4, match, diff, status_code_v3, status_code_v4, duration_v3, duration_v4) VALUES ($1::text, $2::text, $3::text, $4::text, $5::integer, $6::integer, $7::bigint, $8::bigint)")
+		p.stmt, err = p.txn.Prepare("INSERT INTO api_compare (uri_v3, uri_v4, match, diff, status_code_v3, status_code_v4, duration_v3, duration_v4, time) VALUES ($1::text, $2::text, $3::text, $4::text, $5::integer, $6::integer, $7::bigint, $8::bigint, $9::timestamp)")
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	p.stmt.Exec(v3URI, v4URI, match, diff, statusCodeV3, statusCodeV4, durationV3, durationV4)
+	p.stmt.Exec(v3URI, v4URI, match, diff, statusCodeV3, statusCodeV4, durationV3, durationV4, testTime)
 	p.submitted++
 }
 
