@@ -85,7 +85,7 @@ func (ex *Executor) loadResponseHandler(resp chan *requestgenerators.Response, w
 		rh = &responsehandlers.NoneHandler{}
 	case responsehandlers.REDIRECT:
 		rh = &responsehandlers.RedirectResponseHandler{}
-	case responsehandlers.JSON_COMPARE:
+	case responsehandlers.JSONCOMPARE:
 		rh = &responsehandlers.JSONCompareResponseHandler{}
 	case responsehandlers.DEFAULT:
 		rh = &responsehandlers.Default{}
