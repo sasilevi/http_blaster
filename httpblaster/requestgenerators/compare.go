@@ -79,7 +79,7 @@ LOOP:
 			if ep != nil {
 				ep1 := ep.(string)
 				ep2 := strings.Replace(ep1, "v3", "v4.0", 1)
-				// log.Println(ep1, ep2)
+				ep2 = strings.Replace(ep2, "api", "gcdsdk", 1)
 
 				request := AcquireRequest()
 				coockie := ep1

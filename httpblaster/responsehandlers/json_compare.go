@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nsf/jsondiff"
+	"github.com/sasilevi/jsondiff"
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/db"
@@ -39,9 +39,13 @@ type JSONCompareResponseHandler struct {
 	v4NonAttributionBenchmark benchamrkResults
 	psql                      *db.PostgresDB
 	reportDb                  bool
+	recordFile                bool
 }
 
 func (r *JSONCompareResponseHandler) startCompareLog() {
+	if !r.recordFile {
+		return
+	}
 	filename := "compare_out.html"
 	var e error
 	r.logfile, e = os.Create(filename)
@@ -61,7 +65,9 @@ type matchResponces struct {
 }
 
 func (r *JSONCompareResponseHandler) stopCompareLog() {
-
+	if !r.recordFile {
+		return
+	}
 	r.logfile.WriteString("\n</code>")
 	r.logfile.WriteString("\n</pre>")
 	r.logfile.WriteString("\n</html>")
@@ -84,14 +90,22 @@ func (r *JSONCompareResponseHandler) calcBenchmark(resDuration chan time.Duratio
 	}
 }
 
-func (r *JSONCompareResponseHandler) writeCompareDiff(v1, v2, diff, errorStr string) {
+func (r *JSONCompareResponseHandler) writeCompareDiff(v1, v2, diff, errorStr string, diffMap jsondiff.DiffMap) {
+	if !r.recordFile {
+		return
+	}
 	r.logfile.WriteString(fmt.Sprintf("\nSource:%v\nCompare:%v\nDiff:%v\n%v", v1, v2, diff, errorStr))
+	r.logfile.WriteString(fmt.Sprintf("\nAdded:%v", diffMap.GetAdded()))
+	r.logfile.WriteString(fmt.Sprintf("\nRemoved:%v", diffMap.GetRemoved()))
+	r.logfile.WriteString(fmt.Sprintf("\nChanged:%v", diffMap.GetChanged()))
+
 }
 
 // HandlerResponses :  handler function to habdle responses
 func (r *JSONCompareResponseHandler) HandlerResponses(global config.Global, workload config.Workload, respCh chan *requestgenerators.Response) {
 	r.pendingResponses = make(map[interface{}]*requestgenerators.Response)
 	r.ErrorCounters = make(map[string]int64)
+	r.recordFile = workload.ResponseHandlerDumpToFile
 	chMatchResponces := make(chan *matchResponces)
 	if global.DbHost != "" {
 		r.psql = db.New(global.DbHost, global.DbPort, global.DbName, global.DbUser, global.DbPassword)
@@ -174,11 +188,15 @@ func (r *JSONCompareResponseHandler) compareJSONResponses(v3DurationCh, v4Durati
 		log.Errorln(second.RequestURI, " duration:", second.Duration)
 	}
 
-	diff, err := jsondiff.Compare(first.Response.Body(), second.Response.Body(), &ops)
+	diff, err, diffMap := jsondiff.Compare(first.Response.Body(), second.Response.Body(), &ops)
 	if diff != jsondiff.FullMatch {
-		r.writeCompareDiff(first.RequestURI, second.RequestURI, diff.String(), err)
+		r.writeCompareDiff(first.RequestURI, second.RequestURI, diff.String(), err, diffMap)
+		added := diffMap.GetAdded()
+		removed := diffMap.GetRemoved()
+		changed := diffMap.GetChanged()
 		if r.reportDb {
-			r.psql.InserAPICompareInfo(first.RequestURI, second.RequestURI, diff.String(), err, first.Response.StatusCode(), second.Response.StatusCode(), first.Duration, second.Duration)
+			r.psql.InserAPICompareInfo(first.RequestURI, second.RequestURI, diff.String(), err,
+				first.Response.StatusCode(), second.Response.StatusCode(), first.Duration, second.Duration, added, removed, changed)
 		}
 	}
 

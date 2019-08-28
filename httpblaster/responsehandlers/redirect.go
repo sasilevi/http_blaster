@@ -57,7 +57,7 @@ func (r *RedirectResponseHandler) HandlerResponses(global config.Global, workloa
 	r.responsesHash = make(map[uint32]string)
 	r.ErrorCounters = make(map[string]int64)
 	r.psql = db.New(global.DbHost, global.DbPort, global.DbName, global.DbUser, global.DbPassword)
-	r.RecordFile = workload.UADumpToFile
+	r.RecordFile = workload.ResponseHandlerDumpToFile
 	r.recordPositive = global.DbRecordAll
 	defer r.psql.Close()
 	r.psql.InsertResponseBody([]byte(""), r.positiveHash)

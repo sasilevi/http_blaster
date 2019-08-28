@@ -71,7 +71,8 @@ CREATE TABLE public.api_compare (
     status_code_v3 integer NOT NULL,
     status_code_v4 integer NOT NULL,
     duration_v3 bigint NOT NULL,
-    duration_v4 bigint NOT NULL
+	duration_v4 bigint NOT NULL,
+	time timestamp 
 );
 
 
@@ -108,7 +109,10 @@ CREATE TABLE public.ua (
 	osVersion text,
 	expectedStoreLink text,
 	endpoint text,
-	time timestamp
+	time timestamp,
+	changed text,
+	added text,
+	removed text
 );
 
 ALTER TABLE public.ua OWNER TO ownerPlaceholder;
@@ -165,7 +169,7 @@ func (p *PostgresDB) InsertUserAgentInfo(userAgent string, id uint32, target str
 }
 
 // InserAPICompareInfo : Inserts api compare results into postgress db
-func (p *PostgresDB) InserAPICompareInfo(v3URI, v4URI, match, diff string, statusCodeV3, statusCodeV4 int, durationV3, durationV4 time.Duration) {
+func (p *PostgresDB) InserAPICompareInfo(v3URI, v4URI, match, diff string, statusCodeV3, statusCodeV4 int, durationV3, durationV4 time.Duration, added, removed, changed []string) {
 	var err error
 	if p.submitted%100 == 0 {
 		if p.submitted > 0 {
@@ -175,13 +179,15 @@ func (p *PostgresDB) InserAPICompareInfo(v3URI, v4URI, match, diff string, statu
 		if err != nil {
 			log.Fatal(err)
 		}
-		p.stmt, err = p.txn.Prepare("INSERT INTO api_compare (uri_v3, uri_v4, match, diff, status_code_v3, status_code_v4, duration_v3, duration_v4, time) VALUES ($1::text, $2::text, $3::text, $4::text, $5::integer, $6::integer, $7::bigint, $8::bigint, $9::timestamp)")
+		p.stmt, err = p.txn.Prepare("INSERT INTO api_compare (uri_v3, uri_v4, match, diff, status_code_v3, status_code_v4, duration_v3, duration_v4, time, added, removed, changed) VALUES ($1::text, $2::text, $3::text, $4::text, $5::integer, $6::integer, $7::bigint, $8::bigint, $9::timestamp, $10::text, $11::text, $12::text)")
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-
-	p.stmt.Exec(v3URI, v4URI, match, diff, statusCodeV3, statusCodeV4, durationV3, durationV4, testTime)
+	addedString := strings.Join(added, ",")
+	removedString := strings.Join(removed, ",")
+	changedString := strings.Join(changed, ",")
+	p.stmt.Exec(v3URI, v4URI, match, diff, statusCodeV3, statusCodeV4, durationV3, durationV4, testTime, addedString, removedString, changedString)
 	p.submitted++
 }
 
@@ -202,7 +208,9 @@ func (p *PostgresDB) open() {
 
 // Close :  close db
 func (p *PostgresDB) Close() {
+	log.Infoln("Closing DB Connection")
 	if p.submitted > 0 && p.txn != nil {
+		log.Infoln("Commit queued queryied before close")
 		p.txn.Commit()
 	}
 	p.db.Close()
