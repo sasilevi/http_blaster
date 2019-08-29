@@ -61,6 +61,8 @@ func (w *PerfWorker) RunWorker(chResp chan *requestgenerators.Response,
 		reqType.Do(func() {
 			w.Results.Method = string(req.Request.Header.Method())
 		})
+		req.Request.SetHost(w.host)
+		log.Infoln(w.host)
 		_, err := w.sendRequest(req, response)
 
 		if err != nil {
