@@ -3,6 +3,7 @@ package requestgenerators
 import (
 	"context"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -67,6 +68,7 @@ func (ol *Compare) GenerateRequests(global config.Global, wl config.Workload, tl
 
 func (ol *Compare) endpointSubmitter(chReq chan *Request, endpoint chan interface{}, done chan struct{}) {
 	var generated int
+	var re = regexp.MustCompile(`/v3{0,}.+/`)
 LOOP:
 	for {
 		select {
@@ -78,7 +80,7 @@ LOOP:
 			}
 			if ep != nil {
 				ep1 := ep.(string)
-				ep2 := strings.Replace(ep1, "v3", "v4.0", 1)
+				ep2 := re.ReplaceAllString(ep1, `/v4.0/`)
 				ep2 = strings.Replace(ep2, "api", "gcdsdk", 1)
 
 				request := AcquireRequest()
