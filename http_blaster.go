@@ -74,7 +74,7 @@ var (
 	maxConcurrentWorkloads = 1000
 )
 
-const appVersion = "4.0.1"
+const appVersion = "4.0.2"
 
 func init() {
 	const (
@@ -202,6 +202,7 @@ func generateExecutors(termUI *tui.TermUI) {
 			CounterSubmitter: countSubmitted,
 			CounterGenerated: countGenerated,
 			CounterAnalyzed:  countAnalyzed,
+			WorkerQd:         workerQD,
 			//Ch_statuses:    ch_statuses,
 			DumpFailures: dumpFailures,
 			DumpLocation: dumpLocation}
@@ -542,7 +543,15 @@ func dumpLatenciesHistograms() ([]string, []float64, []string, []float64) {
 func remapLatencyHistogram(hist map[int64]int) map[int64]int {
 	res := make(map[int64]int)
 	for k, v := range hist {
-		if k > 10000 { //1 sec
+		if k > 50000 { //5 sec
+			res[50000] += v
+		} else if k > 40000 { //4 sec
+			res[40000] += v
+		} else if k > 30000 { //3 sec
+			res[30000] += v
+		} else if k > 20000 { //2 sec
+			res[20000] += v
+		} else if k > 10000 { //1 sec
 			res[10000] += v
 		} else if k > 5000 { //500 mili
 			res[5000] += v
