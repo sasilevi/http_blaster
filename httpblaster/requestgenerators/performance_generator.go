@@ -62,7 +62,6 @@ func (p *PerformanceGenerator) GenerateRequests(global config.Global, wl config.
 			close(done)
 		}
 	}()
-
 	chReq := make(chan *Request, workerQD)
 	go func() {
 		if p.workload.FileIndex == 0 && p.workload.FilesCount == 0 {

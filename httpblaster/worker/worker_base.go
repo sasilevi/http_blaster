@@ -56,8 +56,9 @@ func (w *Base) openConnection(host string) error {
 	log.Debug("open connection")
 	conn, err := fasthttp.DialTimeout(w.host, DialTimeout)
 	if err != nil {
-		panic(err)
-		// log.Printf("open connection error: %s\n", err)
+		// panic(err)
+		log.Debugf("Failed to open connection: %s", err)
+		return err
 	}
 	if w.isTLSClient {
 		w.conn, err = w.openSecureConnection(conn, host)
@@ -82,18 +83,18 @@ func (w *Base) openSecureConnection(conn net.Conn, host string) (*tls.Conn, erro
 		var pemData []byte
 		fp, err := os.Open(w.pemFile)
 		if err != nil {
-			panic(err)
+			return nil, err
 		} else {
 			defer fp.Close()
 			pemData, err = ioutil.ReadAll(fp)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 		}
 		block, _ := pem.Decode([]byte(pemData))
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			panic(err)
+			return nil, err
 			// log.Fatal(err)
 		}
 		clientCertPool := x509.NewCertPool()
@@ -190,7 +191,8 @@ func (w *Base) sendRequest(req *requestgenerators.Request, response *requestgene
 			host = req.Host
 		}
 		// log.Debugln("host = ", host)
-		if w.restartConnection(errors.New(""), host) != nil {
+		err = w.restartConnection(errors.New(""), host)
+		if err != nil {
 			if req.ExpectedConnectionStatus {
 				log.Errorln("connection error with host", host)
 				w.Results.ConnectionErrors++
