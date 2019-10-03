@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/labstack/gommon/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
 )
 
@@ -34,10 +34,11 @@ func (ol *Impersonate) GenerateHosts(wl config.Workload, done chan struct{}) (ch
 
 	go func() {
 		defer close(chHosts)
+	HOSTS_GEN:
 		for {
 			select {
 			case <-done:
-				break
+				break HOSTS_GEN
 			default:
 				for host, succeess := range wl.ImpersonateHosts {
 					chHosts <- TestHost{Host: host, Success: succeess}
@@ -98,6 +99,7 @@ LOOP:
 		case <-done:
 			break LOOP
 		case host, ok := <-hostsCh:
+
 			if !ok {
 				break LOOP
 			}
@@ -108,7 +110,6 @@ LOOP:
 			request.Request.SetRequestURI(ol.getURI("", ol.workload.Args))
 			request.Host = host.Host
 			request.ExpectedConnectionStatus = host.Success
-
 			chReq <- request
 
 			if ol.workload.Count == 0 {
