@@ -11,7 +11,7 @@ type BaseGenerator struct {
 
 // Run : generator run func
 func (b *BaseGenerator) Run(global config.Global, workload config.Workload, TLSMode bool, host string, retCh chan *Response, workerQD int, counter *tui.Counter, generator Generator) chan *Request {
-	chMidRequest := make(chan *Request)
+	chMidRequest := make(chan *Request, workerQD)
 	go func() {
 		defer close(chMidRequest)
 		requestCh := generator.GenerateRequests(global, workload, TLSMode, host, retCh, workerQD)

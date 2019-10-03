@@ -167,8 +167,8 @@ func (ex *Executor) loadRequestGenerator() (chan *requestgenerators.Request,
 	} else {
 		host = ex.Host
 	}
-	generatot := requestgenerators.BaseGenerator{}
-	chReq := generatot.Run(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated, reqGen)
+	generator := requestgenerators.BaseGenerator{}
+	chReq := generator.Run(ex.Globals, ex.Workload, ex.TLSMode, host, chResponse, ex.WorkerQd, ex.CounterGenerated, reqGen)
 
 	return chReq, releaseReq, chResponse
 }
