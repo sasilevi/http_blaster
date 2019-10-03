@@ -50,7 +50,7 @@ func (w *PerfWorker) RunWorker(chResp chan *requestgenerators.Response,
 	dumpLocation string) {
 	defer wg.Done()
 	var reqType sync.Once
-	w.countSubmitted = countSubmitted
+	w.countSubmitted = countSubmitted.Chan()
 	doOnce.Do(func() {
 		log.Info("Running Performance workers")
 	})
