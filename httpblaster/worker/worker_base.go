@@ -17,7 +17,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/histogram"
 	"github.com/v3io/http_blaster/httpblaster/requestgenerators"
-	"github.com/v3io/http_blaster/httpblaster/tui"
 	"github.com/valyala/fasthttp"
 )
 
@@ -48,7 +47,7 @@ type Base struct {
 	id              int
 	hist            *histogram.LatencyHist
 	executorName    string
-	countSubmitted  *tui.Counter
+	countSubmitted  chan int64
 	resetConnection bool
 }
 
@@ -135,6 +134,7 @@ func (w *Base) restartConnection(err error, host string) error {
 
 func (w *Base) send(req *fasthttp.Request, resp *fasthttp.Response,
 	timeout time.Duration) (time.Duration, error) {
+
 	var err error
 	go func() {
 		start := time.Now()
@@ -155,7 +155,7 @@ func (w *Base) send(req *fasthttp.Request, resp *fasthttp.Response,
 		end := time.Now()
 		w.chDuration <- end.Sub(start)
 	}()
-	w.countSubmitted.Add(1)
+	w.countSubmitted <- 1
 	w.timer.Reset(timeout)
 	select {
 	case duration := <-w.chDuration:
