@@ -10,9 +10,9 @@ type Counter struct {
 	chValues chan int64
 }
 
-//Add : add value to counter
-func (sc *Counter) Add(value int64) {
-	sc.chValues <- value
+//Chan : get counter channel for values
+func (sc *Counter) Chan() chan int64 {
+	return sc.chValues
 }
 
 //GetValue : get counter value
