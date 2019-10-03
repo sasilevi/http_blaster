@@ -15,8 +15,9 @@ func (b *BaseGenerator) Run(global config.Global, workload config.Workload, TLSM
 	go func() {
 		defer close(chMidRequest)
 		requestCh := generator.GenerateRequests(global, workload, TLSMode, host, retCh, workerQD)
+		counter_ch := counter.Chan()
 		for m := range requestCh {
-			counter.Add(1)
+			counter_ch <- 1
 			chMidRequest <- m
 		}
 	}()

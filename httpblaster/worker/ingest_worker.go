@@ -102,7 +102,7 @@ func (w *IngestWorker) RunWorker(chResp chan *requestgenerators.Response,
 	dumpRequests bool,
 	dumpLocation string) {
 	defer wg.Done()
-	w.countSubmitted = countSubmitted
+	w.countSubmitted = countSubmitted.Chan()
 	var onceSetRequest sync.Once
 	var oncePrepare sync.Once
 	var request *requestgenerators.Request
