@@ -24,7 +24,6 @@ func (b *BaseResponseHandler) Run(global config.Global, workload config.Workload
 		counter_ch := counter.Chan()
 		for m := range respoCh {
 			counter_ch <- 1
-			log.Println("aaa-aaa")
 			chMidResponse <- m
 		}
 	}()
