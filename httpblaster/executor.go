@@ -78,7 +78,7 @@ type Executor struct {
 
 func (ex *Executor) loadResponseHandler(resp chan *requestgenerators.Response, wg *sync.WaitGroup) responsehandlers.IResponseHandler {
 	handlerType := strings.ToLower(ex.Workload.ResponseHandler)
-	var rh responsehandlers.IResponseHandler
+	var rh responsehandlers.IResponseHandler = nil
 
 	switch handlerType {
 	case "":
@@ -92,7 +92,10 @@ func (ex *Executor) loadResponseHandler(resp chan *requestgenerators.Response, w
 	default:
 		log.Println("No response handler was selected")
 	}
-	go rh.Run(ex.Globals, ex.Workload, resp, wg, rh, ex.CounterAnalyzed)
+	if rh != nil {
+		wg.Add(1)
+		go rh.Run(ex.Globals, ex.Workload, resp, wg, rh, ex.CounterAnalyzed)
+	}
 	return rh
 }
 
@@ -195,7 +198,7 @@ func (ex *Executor) run(wg *sync.WaitGroup) error {
 	workersWg.Add(ex.Workload.Workers)
 
 	chReq, releaseReqFlag, chResponse := ex.loadRequestGenerator()
-	rhWg.Add(1)
+
 	rh := ex.loadResponseHandler(chResponse, &rhWg)
 
 	for i := 0; i < ex.Workload.Workers; i++ {
@@ -268,6 +271,8 @@ LOOP:
 
 	log.Println("Waiting for response handler to finish")
 	rhWg.Wait()
+	log.Println("Response handler is done")
+
 	ex.results.ResponseErrors = rh.Error()
 	ex.results.Counters = rh.Counters()
 
