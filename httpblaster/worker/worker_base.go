@@ -184,8 +184,6 @@ func (w *Base) sendRequest(req *requestgenerators.Request, response *requestgene
 	if w.lazySleep > 0 {
 		time.Sleep(w.lazySleep)
 	}
-	time.Sleep(time.Millisecond * 100)
-	return time.Millisecond * 100, nil
 
 	if w.resetConnection {
 		// log.Debugln("Restart Connection")
