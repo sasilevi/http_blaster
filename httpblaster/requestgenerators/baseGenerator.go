@@ -1,6 +1,7 @@
 package requestgenerators
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/v3io/http_blaster/httpblaster/config"
 	"github.com/v3io/http_blaster/httpblaster/tui"
 )
@@ -15,12 +16,14 @@ func (b *BaseGenerator) Run(global config.Global, workload config.Workload, TLSM
 	go func() {
 		defer close(chMidRequest)
 		requestCh := generator.GenerateRequests(global, workload, TLSMode, host, retCh, workerQD)
-		counter_ch := counter.Chan()
+		counterCh := counter.Chan()
 		for m := range requestCh {
-			counter_ch <- 1
+			counterCh <- 1
 			chMidRequest <- m
 		}
+		log.Info("closing chMidRequest")
 	}()
+
 	return chMidRequest
 
 }

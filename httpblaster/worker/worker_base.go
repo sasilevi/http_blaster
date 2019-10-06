@@ -83,13 +83,13 @@ func (w *Base) openSecureConnection(conn net.Conn, host string) (*tls.Conn, erro
 		fp, err := os.Open(w.pemFile)
 		if err != nil {
 			return nil, err
-		} else {
-			defer fp.Close()
-			pemData, err = ioutil.ReadAll(fp)
-			if err != nil {
-				return nil, err
-			}
 		}
+		defer fp.Close()
+		pemData, err = ioutil.ReadAll(fp)
+		if err != nil {
+			return nil, err
+		}
+
 		block, _ := pem.Decode([]byte(pemData))
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
@@ -184,6 +184,9 @@ func (w *Base) sendRequest(req *requestgenerators.Request, response *requestgene
 	if w.lazySleep > 0 {
 		time.Sleep(w.lazySleep)
 	}
+	time.Sleep(time.Millisecond * 100)
+	return time.Millisecond * 100, nil
+
 	if w.resetConnection {
 		// log.Debugln("Restart Connection")
 

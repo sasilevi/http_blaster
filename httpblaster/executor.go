@@ -78,7 +78,7 @@ type Executor struct {
 
 func (ex *Executor) loadResponseHandler(resp chan *requestgenerators.Response, wg *sync.WaitGroup) responsehandlers.IResponseHandler {
 	handlerType := strings.ToLower(ex.Workload.ResponseHandler)
-	var rh responsehandlers.IResponseHandler = nil
+	var rh responsehandlers.IResponseHandler
 
 	switch handlerType {
 	case "":
@@ -232,7 +232,9 @@ func (ex *Executor) run(wg *sync.WaitGroup) error {
 	}
 	ended := make(chan bool)
 	go func() {
+		log.Info("Waiting for workers to finish")
 		workersWg.Wait()
+		log.Info("Wrokers finished")
 		close(ended)
 	}()
 	tick := time.Tick(time.Millisecond * 500)

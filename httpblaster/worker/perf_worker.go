@@ -74,7 +74,6 @@ func (w *PerfWorker) RunWorker(chResp chan *requestgenerators.Response,
 		requestgenerators.ReleaseRequest(req)
 		response.Response.Reset()
 	}
-	log.Debugln("closing hist")
 	w.hist.Close()
 	w.closeConnection()
 }

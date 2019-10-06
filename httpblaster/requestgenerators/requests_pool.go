@@ -27,19 +27,19 @@ type Response struct {
 }
 
 var (
-	requestPool  sync.Pool
-	responsePool sync.Pool
-	ids          int
+	requestPool = sync.Pool{New: func() interface{} {
+		ids++
+		return &Request{Request: fasthttp.AcquireRequest(), ID: ids, ExpectedConnectionStatus: true}
+	}}
+	responsePool = sync.Pool{New: func() interface{} {
+		return &Response{Response: fasthttp.AcquireResponse()}
+	}}
+	ids int
 )
 
 //AcquireRequest : get request from pool
 func AcquireRequest() *Request {
-	v := requestPool.Get()
-	if v == nil {
-		ids++
-		return &Request{Request: fasthttp.AcquireRequest(), ID: ids, ExpectedConnectionStatus: true}
-	}
-	return v.(*Request)
+	return requestPool.Get().(*Request)
 }
 
 //ReleaseRequest : release request back to pool
@@ -51,11 +51,7 @@ func ReleaseRequest(req *Request) {
 
 //AcquireResponse : get response object from pool
 func AcquireResponse() *Response {
-	v := responsePool.Get()
-	if v == nil {
-		return &Response{Response: fasthttp.AcquireResponse()}
-	}
-	return v.(*Response)
+	return responsePool.Get().(*Response)
 }
 
 //ReleaseResponse : release response obj back to pool

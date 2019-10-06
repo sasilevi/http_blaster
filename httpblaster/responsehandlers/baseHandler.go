@@ -21,9 +21,9 @@ func (b *BaseResponseHandler) Run(global config.Global, workload config.Workload
 
 	go func() {
 		defer close(chMidResponse)
-		counter_ch := counter.Chan()
+		counterCh := counter.Chan()
 		for m := range respoCh {
-			counter_ch <- 1
+			counterCh <- 1
 			chMidResponse <- m
 		}
 	}()
